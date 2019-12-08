@@ -14,8 +14,8 @@ boundaries_files = file(params.tissue_bound_annot)
 // input parameter
 params.weights = "imagenet"
 weights = params.weights
-// seed = 42
-levels = [2, 3] // levels = [0, 1, 2]
+
+levels = [0, 1, 2]
 
 process WsiTilingEncoding {
     publishDir "${output_process_mean}", overwrite: true, pattern: "${name}.npy"
