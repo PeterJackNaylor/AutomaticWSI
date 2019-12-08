@@ -23,10 +23,10 @@ process WsiTilingEncoding {
     publishDir "${output_process_info}", overwrite: true, pattern: "${name}_info.txt"
     publishDir "${output_process_visu}", overwrite: true, pattern: "${name}_visu.png"
 
-    // queue "gpu-cbio"
-    // clusterOptions "--gres=gpu:1"
-    // maxForks 16
-    // memory '20GB'
+    queue "gpu-cbio"
+    clusterOptions "--gres=gpu:1"
+    maxForks 16
+    memory '20GB'
     
     input:
     file slide from tiff_files
