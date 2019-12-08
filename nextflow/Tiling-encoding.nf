@@ -47,7 +47,7 @@ process WsiTilingEncoding {
     output_process_info = "${output_folder}/tiling/${level}/info"
     output_process_visu = "${output_folder}/tiling/${level}/visu"
     """
-    # module load cuda10.0
+    module load cuda10.0
     python $py --slide $slide \
                --xml_file $xml_file \
                --analyse_level $level \
