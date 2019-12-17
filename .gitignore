@@ -2,6 +2,7 @@
 outputs
 work
 .vscode
+*.code-workspace
 .nextflow*
 
 # Byte-compiled / optimized / DLL files
