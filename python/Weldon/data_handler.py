@@ -12,6 +12,9 @@ from sklearn.model_selection import StratifiedKFold
 
 
 def load(img_path, input_depth):
+    """ 
+    To change if not using .h5 dataformat.
+    """
     h5f = h5py.File(img_path, 'r')
     x = h5f['dataset_1'][:, :input_depth]
     mat = da.from_array(x, chunks=("auto", -1))
@@ -22,6 +25,21 @@ def parse_table_name(name):
     return int(name.name.split('__')[-1].split('.')[0])
 
 def add_index(table, index):
+    """ Adds the start and end index (in the concatenated object of the dataset) to results_table.
+        Harmonize the name of the files between table and the `*.h5` names (may change).
+    
+    Parameters
+    ----------
+    table : pd.DataFrame
+        Results dataframe containing the information about each patients files.
+    index : dict
+        maps a file name (`"ny__$number.h5"`) to an entry in `table` ($number)
+    
+    Returns
+    -------
+    pd.DataFrame
+        dataframe table with two new columns, start and ends, corresponding to each index[file].
+    """
     index_table = pd.DataFrame.from_dict(index).T
     index_table.columns = ["start", "end"]
     index_table["Biopsy"] = index_table.apply(lambda x: int(x.name.split('.')[0].split('__')[-1]), axis=1)
@@ -37,42 +55,94 @@ def label_mapping(string):
     return group
 
 def set_table(table, fold_test, inner_number_folds, index_table, y_name):
+    """ Set the table containing the data information
+
+    Set the table by adding to each entry (patient) its start and end indexes in the concatenated data object.
+    In fact each patients i is composed by `n_i` tiles so that for example patient 0 will have as starts and ends indices 0 and `n_0`.
+    It then separates the dataset into test and train sets (according to `fold_test`).
+    Finally, several splits of the train sets are done for cross validation, preserving relative class frequency.
+    
+    Obviously, dataset is shuffled, and splitted at the patient level, so that the indexes returned are the table indexes,
+    not the concatenated object indexes.
+
+    Parameters
+    ----------
+    table : pd.DataFrame
+        data information.
+    fold_test : int
+        number of the fold which will be used for testing.
+    inner_number_folds : int
+        number of splits used in the cross validation.
+    index_table : dict
+        maps each file (key) to its start and end index in the data object (concatenated encoded bags)
+    y_name : str
+        or "y_variable", is the name of the target variable.
+    
+    Returns
+    -------
+    pd.DataFrame, list(tuple), list
+        returns 1: the table DataFrame augmented with start and end indexes
+                2: The `inner_number_folds` splits for cross_validation, each containing (list(train_indexes), list(val_indexes)).
+                3: List containing indexes of the test dataset.
+    """
     ## add index_table to table so that all the info is in table 
     if y_name == "RCB_class":
         table[y_name] = list(map(label_mapping, table[y_name]))
     table = add_index(table, index_table)
     train_table = table[table["fold"] != fold_test]
     test_index = table[table["fold"] == fold_test].index
-    stratefied_variable = train_table["RCB_score"].round(0)
-    skf = StratifiedKFold(n_splits=inner_number_folds, shuffle=True)
-    obj = skf.split(train_table.index, stratefied_variable)
+    stratified_variable = train_table["RCB_score"].round(0)
+    skf = StratifiedKFold(n_splits=inner_number_folds, shuffle=True) # Assures that relative class frequency is preserve in each folds.
+    obj = skf.split(train_table.index, stratified_variable)
     index_folds = [(train_index, val_index) for train_index, val_index in obj]
     return table, index_folds, test_index
 
+
+
+def load_concatenated_data(files, depth, mean):
+    """ Loads a concatenated matrix from a list of files.
+
+    Loads the matrix of the encoded WSI of files in a single matrix of size NxM with N the total number of tiles
+    of all the WSI and M the choosen depth.
+    
+    Parameters
+    ----------
+    files : list
+        list of path to the WSI encoded files (npy or h5, h5 for the moment)
+    depth : int
+        number of variables of the encoded tiles to keep.
+    mean : np.array
+        mean matrix for normalisation
+    
+    Returns
+    -------
+    np.array, dict
+        1: concatenated matrix of all the tiles
+        2: index_file dictionnary, indicating start and end indexes of each patients in the concatenated matrix.
+    """
+    index_file = {}
+    list_table = []
+    for f in tqdm(files):
+        mat = load(f, depth) - mean
+        n_i = mat.shape[0]
+        # index_table[f] = mat
+        index_file[f] = [last_index, last_index + n_i]
+        last_index += n_i
+        list_table.append(mat)
+    data = da.concatenate(list_table, axis=0)
+    return data, index_file
+    
+ 
 class data_handler:
     def __init__(self, path, fold_test, table_name, 
                  inner_cross_validation_number, batch_size, 
                  mean, options):
         files = glob(path)
-        index_file = {}
-        # index_table = {}
-        list_table = []
+        depth = options.input_depth
         last_index = 0
         mean = np.load(mean)
-        for f in tqdm(files):
-            mat = load(f, options.input_depth) - mean
-            n_i = mat.shape[0]
-            # index_table[f] = mat
-            index_file[f] = [last_index, last_index + n_i]
-            last_index += n_i
-            list_table.append(mat)
-            # if n_i < size_min:
-        data = da.concatenate(list_table, axis=0)
-        # import pdb; pdb.set_trace()
-        # data = np.zeros(shape=(last_index, options.input_depth))
-        # for key, value in tqdm(index_table.items()):
-        #     i, j = index_file[key]
-        #     data[i:j] = value
+        data, index_file = load_concatenated_data(files=files, depth=depth, mean=mean)
+
         self.data = data
 
         table = pd.read_csv(table_name)

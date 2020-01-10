@@ -1,4 +1,3 @@
-  
 from numpy import array, random, round
 from pandas import DataFrame
 from options_py import get_options
@@ -10,12 +9,30 @@ from model_definition import load_model
 from keras import backend as K
 
 def log_sample(a, b):
+    assert a <= b
     unit = random.randint(1, 10)
     power = random.randint(a, b)
     return unit * 10 ** power
 
 
 def sample_hyperparameters(options, validation_fold):
+    """ Samples hyperparameters: 
+    learning_rate, weight_decay, gaussian_noise, drop_out, hidden_fcn, hidden_btleneck, validation fold.
+    See commentary for validation fold. 
+
+    
+    Parameters
+    ----------
+    options : NameSpace
+        Parameters sampled by argParse
+    validation_fold : int
+        number of the validation fold used.
+    
+    Returns
+    -------
+    dict
+        dictionary containing all the values cited above. Keys are the name written in the description.
+    """
     dic = {}
     dic["learning_rate"] = log_sample(options.learning_rate_start, options.learning_rate_stop)
     dic["weight_decay"] = log_sample(options.weight_decay_start, options.weight_decay_stop)
@@ -24,18 +41,17 @@ def sample_hyperparameters(options, validation_fold):
     dic["hidden_fcn"] = random.choice(options.hidden_fcn_list)
     dic["hidden_btleneck"] = random.choice(options.hidden_btleneck_list)
     fold_test = options.fold_test - 1
-    possible_val_fold = [el for el in range(options.n_fold) if fold_test != el]
+    possible_val_fold = [el for el in range(options.n_fold) if fold_test != el] # Pourquoi ? Si le test fold a précedemment été séparé, et qu'on a Kfoldé le dataset seulement sur trainfold je vois pas l'intéret.
     dic["validation_fold"] = possible_val_fold[validation_fold]
-    # dic["validation_fold"] = random.choice(possible_val_fold)
     return dic
 
-def call_backs(options):
-    lr_reducer = ReduceLROnPlateau(monitor='val_loss',
-                                   factor=0.1,
-                                   patience=5,
-                                   mode='auto')  
-    # return [lr_reducer]
-    return []
+#def call_backs(options):
+#    lr_reducer = ReduceLROnPlateau(monitor='val_loss',
+#                                   factor=0.1,
+#                                   patience=5,
+#                                   mode='auto')  
+#    # return [lr_reducer]
+#    return []
 
 def train_model(model, data, parameter_dic, options):
     callbacks_list = call_backs(options)
