@@ -1,7 +1,6 @@
 # Defines the neural network used in the WELDON model.
 # Implemented in keras
 
-
 import tensorflow as tf
 from keras import backend as K
 
@@ -60,8 +59,8 @@ def owkin_model(n_classes, k=10, hidden_fcn=512, weight_decay=0.0005,
     return model
 
 
-def load_model(parameter_dic, options):
-    """[summary]
+def load_model(parameter_dic, options, verbose=True):
+    """
     
     Parameters
     ----------
@@ -108,20 +107,20 @@ def load_model(parameter_dic, options):
     gaussian_param = parameter_dic["gaussian_noise"]
     drop_out = parameter_dic["drop_out"]
     weight_decay = parameter_dic["weight_decay"]
-
     activation_middle = "tanh"
+    learning_rate = parameter_dic["learning_rate"]
+
     model = owkin_model(n_classes, k, hidden_fcn, weight_decay,
                         input_depth, drop_out, gaussian_param,
                         type_prob=prob)
-    print(model.summary())
+    if verbose:
+        print(model.summary())
 
-    learning_rate = parameter_dic["learning_rate"]
     if optimizer_name == "Adam":
-        opt = Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+        opt = Adam(lr=learning_rate, epsilon=1e-08)
     else:
         msg = "Unknown optimizer_name type with name: {}"
         raise ValueError(msg.format(optimizer_name))
-
     metrics = import_metrics(prob)
     
     model.compile(loss=loss,

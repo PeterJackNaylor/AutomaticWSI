@@ -12,13 +12,36 @@ from sklearn.model_selection import StratifiedKFold
 
 
 def load(img_path, input_depth):
-    """ 
-    To change if not using .h5 dataformat.
+    """[summary]
+    
+    Parameters
+    ----------
+    img_path : str 
+        path to the image (= one patient) to load. Must be h5 files of npy files (results of the Tiling Encoding process)
+    input_depth : int
+        number of variable of the encoding space to use.
+    
+    Returns
+    -------
+    dask.array
+        dask array containing a whole encoded slide.
+   
+    Returns
+    -------
+    [type]
+        [description]
     """
-    h5f = h5py.File(img_path, 'r')
-    x = h5f['dataset_1'][:, :input_depth]
-    mat = da.from_array(x, chunks=("auto", -1))
-    h5f.close()
+
+    
+    if img_path.endswith('.npy'):
+        img = np.load(img_path)[:,:input_depth]
+    elif img_path.endswith('.h5'):
+        h5f = h5py.File(img_path, 'r')
+        img = h5f['dataset_1'][:, :input_depth]
+        h5f.close()
+    else:
+        raise TypeError("The format of the input images must be either h5 or npy.")
+    mat = da.from_array(img, chunks=("auto", -1))
     return mat
 
 def parse_table_name(name):
@@ -134,6 +157,9 @@ def load_concatenated_data(files, depth, mean):
     
  
 class data_handler:
+    """Instanciate a data_handler Class. Creates iterators with the choosen characteristics with the functions
+    dg_train, dg_val, dg_test.
+    """
     def __init__(self, path, fold_test, table_name, 
                  inner_cross_validation_number, batch_size, 
                  mean, options):
@@ -142,7 +168,6 @@ class data_handler:
         last_index = 0
         mean = np.load(mean)
         data, index_file = load_concatenated_data(files=files, depth=depth, mean=mean)
-
         self.data = data
 
         table = pd.read_csv(table_name)
@@ -164,7 +189,19 @@ class data_handler:
             self.categorical = "regression"
 
     def dg_train(self, sub_fold_val):
-        train_index = self.obj[sub_fold_val][0] # Corresponds aux index des 9 subfolds d'entrainement ou bien du subfold de validation ??!
+        """
+        
+        Parameters
+        ----------
+        sub_fold_val : int
+            number of validation fold.
+        
+        Returns
+        -------
+        [type]
+            [description]
+        """
+        train_index = self.obj[sub_fold_val][0] 
         return h5_Sequencer(train_index, self.table, self.data, self.batch_size, 
                             self.size, categorical=self.categorical, 
                             y_name=self.y_variable)
@@ -195,10 +232,30 @@ class data_handler:
             return dic_weights
         else:
             return None
+
 def sample(start, end, size):
     return np.sort(np.random.randint(start, high=end, size=size))
 
 def pj_fetch(name, table, size):
+    """Samples the tiles indexes for a slice.
+
+    If the slide has a number of tiles different than slide, then we sample uniformly `size` tiles
+    among the available tiles. --> Why not sample all the cases in a Uniform ?
+    
+    Parameters
+    ----------
+    name : int
+        index of the patient in the table.
+    table : pdf.DataFrame
+        description table of the dataset
+    size : int 
+        fixed number of tiles per slide
+    
+    Returns
+    -------
+    list
+        list of indexes corresponding to the tiles, in the concatenated data object.
+    """
     start = table.ix[name, "start"]
     end = table.ix[name, "end"]
     if end - start < size:
@@ -233,24 +290,37 @@ class h5_Sequencer(Sequence):
         self.size = size
         self.data = data
         self.table = table
+
     def __len__(self):
         return self.n_size // self.batch_size
 
     def __getitem__(self, idx):
+        """Samples a batch
+        
+        Each bacth is the aggregation of `batch_size` number of patients, each patients being `size` tiles.
+
+        Parameters
+        ----------
+        idx : int
+            index of the sample
+        
+        Returns
+        -------
+        np.array, np.array
+            1: return_1[i] is an array containing the `size` encoded tiles of patient `i`
+            2: return_2[i] is an array containing the `size` number of labels of patient `i`
+        """
+
         batch_x = self.index_patient[idx * self.batch_size:(idx + 1) * self.batch_size]
         batch_y = self.y_onehot[idx * self.batch_size:(idx + 1) * self.batch_size]
-        def f(name, table=self.table, data=self.data, size=self.size):
-            # old_size = npy_array.shape[0]
-            # number_zero = (npy_array.sum(axis=1) == 0).sum()
+
+        def f(name, table=self.table, size=self.size):
+            data = self.data
             index = pj_fetch(name, table, size)
             npy_array = data[index]
-            # new_size = npy_array.shape[0]
-            # print("size_array in mem: {} with {} lines of 0 and is now {}".format(old_size, number_zero, new_size))
-#            return self.datagen.random_transform(npy_array)
             return npy_array
 
         list_f_x = [f(name).compute() for name in batch_x]
-
         batch_x = np.array(list_f_x).astype(float)
         batch_y = np.array(batch_y)
         return batch_x, batch_y

@@ -148,8 +148,8 @@ def main():
                    'validation_fold', 'learning_rate', 'weight_decay', 
                    'gaussian_noise', 'k', 'model', 'pooling', 'batch_size', 
                    'size', 'input_depth', 'fold_test', 'run_number']
-    table = DataFrame(index=range(options.repeat), columns=columns)
 
+    table = DataFrame(index=range(options.repeat), columns=columns) # Link with the previous table ? Or just result_table ?
     options.run = 0
     for i in range(options.repeat):
         options.run += 1
