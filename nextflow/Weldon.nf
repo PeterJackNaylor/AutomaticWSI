@@ -5,14 +5,15 @@ params.PROJECT_VERSION = "1-0"
 params.resolution = "2"
 r = params.resolution
 params.class_type = "residuum"
+params.y_variable = "Residual"
 
 // Folders
-output_folder = "./outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}"
+output_folder = "mnt/data4/tlazard/AutomaticWSI/outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}"
 output_folder = "${output_folder}/Weldon_R${r}"
 
 // label
-params.label = "/Users/naylorpeter/Documents/Histopathologie/labels.csv"
-label = file(params.label)
+params.label = "./labels.csv"
+labels = file(params.label)
 
 results_table = "$output_folder/results/"
 inner_fold =  10
@@ -28,16 +29,17 @@ number_of_folds = 10
 seed = 42
 
 /* Channels definitions */
-data_folder = "/mnt/data3/pnaylor/AutomaticWSI/"
-params.input = "$data_folder/outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}/tiling/${r}/"
-params.input_tiles = "$params.input/mat/"
-params.input_mean = "$params.input/mean/"
-encoded_bags = file(params.input_tiles + "/*.npy")
-mean_file = Channel.from(file("$params.input_mean/*.npy"))
-patients = Channel.from(encoded_bags) 
+data_folder = "/mnt/data3/pnaylor/AutomaticWSI"
+params.input = "$data_folder/outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}/tiling/${r}"
+params.input_tiles = "${params.input}/mat/*.npy"
+params.input_mean = "${params.input}/mean/mean.npy"
+mean_file = Channel.from("${params.input_mean}")
+encoded_bags = Channel.from(params.input_tiles) 
+
+//mean_file = mean_file .view()
 
 process TrainingWeldon {
-    publishDir "${output_model_folder}", pattern: "*.h5", overwrite: true
+    publishDir "${output_model_folder}", pattern: "*.npy", overwrite: true
     publishDir "${output_results_folder}", pattern: "*.csv", overwrite: true
     memory { 30.GB + 5.GB * (task.attempt - 1) }
     errorStrategy 'retry'
@@ -46,7 +48,7 @@ process TrainingWeldon {
     clusterOptions "--gres=gpu:1"
 
     input:
-    file images from patients .collect() 
+    file images from encoded_bags .collect() 
     file mean from mean_file
     each fold from 1..number_of_folds 
 
@@ -55,16 +57,16 @@ process TrainingWeldon {
 
     script:
     python_script = weldon_training
-    output_model_folder = file("${output_folder}/models/test_fold_${fold}/")
-    output_results_folder = file("${output_folder}/results/test_fold_${fold}/")
+    output_model_folder = file("${output_folder}/models/")
+    output_results_folder = file("${output_folder}/results/")
 
     /* Mettre --table --repeat --class_type en valeur par défaut ? */
     """
     module load cuda10.0
-    python $python_script --mean_name $mean \
-                          --path $images \
+    python $python_script --mean_name ${params.input_mean} \
+                          --path "${params.input_tiles}" \
                           --seed $seed \
-                          --table $results_table \
+                          --table $labels \
                           --batch_size $batch_size \
                           --epochs $epochs \
                           --size $size \
@@ -72,7 +74,7 @@ process TrainingWeldon {
                           --inner_cross_validation_number $inner_cross_validation_number \
                           --class_type $params.class_type \
                           --repeat $repeat \
-                          --n_folds $number_of_folds \
+                          --n_fold $number_of_folds \
                           --y_variable $params.y_variable
     """
 }

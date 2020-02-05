@@ -21,14 +21,11 @@ def get_options():
     parser.add_argument('--epochs', required=True,
                         metavar="str", type=int,
                         help='number of epochs')
-    parser.add_argument('--network_architecture', required=True,
-                        metavar="str", type=str,
-                        help='model to perform on data')
     parser.add_argument('--seed', required=True,
                         metavar="str", type=int,
                         help='seed')
-    parser.add_argument('--cpus', required=True,
-                        metavar="str", type=int,
+    parser.add_argument('--cpus',
+                        metavar="str", type=int, default=8,
                         help='number of available cpus')
     parser.add_argument('--main_name', required=False,
                         metavar="str", type=str,
@@ -42,21 +39,21 @@ def get_options():
     parser.add_argument('--class_type', required=True,
                         metavar="str", type=str,
                         help='classification problem at hand')
-    parser.add_argument('--gaussian_noise', required=True,
-                        metavar="str", type=int,
+    parser.add_argument('--gaussian_noise',
+                        metavar="str", type=int, default=0,
                         help='if to apply gaussian noise to the input')
-    parser.add_argument('--pool', required=True,
-                        metavar="str", type=str,
+    parser.add_argument('--pool',
+                        metavar="str", type=str, default='max',
                         help='if to apply max or average pooling')
     parser.add_argument('--repeat', required=True,
                         metavar="str", type=int,
                         help='number of repeats')
-    parser.add_argument('--n_fold', required=True,
-                        metavar="int", type=int,
+    parser.add_argument('--n_fold',
+                        metavar="int", type=int, default=10,
                         help='number of fold')
     parser.add_argument('--y_variable', required=False,
                         metavar="str", type=str,
-                        help='name of the variable to predict')
+                        help='name of the variable to predict Residual | Prognostic | fold ...')
     args = parser.parse_args()
 
     if args.gaussian_noise == 0:
@@ -66,7 +63,7 @@ def get_options():
 
     args.optimizer_name = "Adam"
     args.max_queue_size = 10
-    args.workers = 28
+    args.workers = 1
     args.use_multiprocessing = False
     args.input_depth = 2048 # 512
 

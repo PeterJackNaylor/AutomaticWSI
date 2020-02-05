@@ -2,11 +2,14 @@ from numpy import array, random, round
 from pandas import DataFrame
 from options_py import get_options
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
-
+import sys
 from data_handler import data_handler
 from model_definition import load_model
+import ipdb
 
+import tensorflow as tf
 from keras import backend as K
+
 
 def log_sample(a, b):
     assert a <= b
@@ -45,13 +48,13 @@ def sample_hyperparameters(options, validation_fold):
     dic["validation_fold"] = possible_val_fold[validation_fold]
     return dic
 
-#def call_backs(options):
-#    lr_reducer = ReduceLROnPlateau(monitor='val_loss',
-#                                   factor=0.1,
-#                                   patience=5,
-#                                   mode='auto')  
-#    # return [lr_reducer]
-#    return []
+def call_backs(options):
+    lr_reducer = ReduceLROnPlateau(monitor='val_loss',
+                                   factor=0.1,
+                                   patience=5,
+                                   mode='auto')  
+    # return [lr_reducer]
+    return []
 
 def train_model(model, data, parameter_dic, options):
     callbacks_list = call_backs(options)
@@ -61,10 +64,12 @@ def train_model(model, data, parameter_dic, options):
                                   epochs=options.epochs, callbacks=callbacks_list, 
                                   class_weight=data.weights(), 
                                   max_queue_size=options.max_queue_size, workers=options.workers, 
-                                  use_multiprocessing=options.use_multiprocessing)
+                                  use_multiprocessing=options.use_multiprocessing,
+                                  verbose=2)
     model.save('my_model_run_number_{}.h5'.format(options.run))
 
     return model, history
+
 
 def evaluate_test(model, data, options, repeat=5):
     final_scores = None
@@ -102,7 +107,7 @@ def fill_table(history, scores, table, parameter_dic, options):
         val_values = ['val_loss', 'val_mean_squared_error']
         test_values = ['test_loss', 'test_mean_squared_error']
     parameters_values = list(parameter_dic.keys())
-    model_values = ['k', 'model', 'pooling', 'batch_size', 'size', 
+    model_values = ['k', 'pooling', 'batch_size', 'size', 
                     'input_depth', 'fold_test', "run_number"]
     vec_train = [trunc_if_possible(history.history[key][-1]) for key in train_values]
     vec_validation = [trunc_if_possible(history.history[key][-1]) for key in val_values]
@@ -114,10 +119,15 @@ def fill_table(history, scores, table, parameter_dic, options):
 
     name_columns = train_values + val_values + test_values + parameters_values + model_values
     val_columns = vec_train + vec_validation + vec_test + vec_parameters + vec_model
-    table.ix[options.run, name_columns] = val_columns
+    table.iloc[options.run][name_columns] = val_columns
     return table
 
 def main():
+
+    config = tf.ConfigProto(log_device_placement=True)
+    config.gpu_options.allow_growth = True
+    K.tensorflow_backend.set_session(tf.Session(config=config))
+
     options = get_options()
     mean = options.mean_name
     path = options.path
@@ -149,21 +159,22 @@ def main():
                    'gaussian_noise', 'k', 'model', 'pooling', 'batch_size', 
                    'size', 'input_depth', 'fold_test', 'run_number']
 
-    table = DataFrame(index=range(options.repeat), columns=columns) # Link with the previous table ? Or just result_table ?
+    results_table = DataFrame(index=range(options.repeat*(options.n_fold - 1)), columns=columns) # Link with the previous table ? Or just result_table ?
     options.run = 0
     for i in range(options.repeat):
-        options.run += 1
         for j in range(options.n_fold - 1): # Defines which fold will be the validation fold
             parameter_dic = sample_hyperparameters(options, j)
             model = load_model(parameter_dic, options)
+            print("begin training", flush=True)
             model, history = train_model(model, data, parameter_dic, options)
             scores, predictions = evaluate_test(model, data, options)
-            table = fill_table(history, scores, table, parameter_dic, options)
+            results_table = fill_table(history, scores, results_table, parameter_dic, options)
 
             K.clear_session()
             del model
-            table.to_csv(options.output_name, index=False)
-            predictions.to_csv("predictions_run_{}_fold_val_{}.csv".format(options.run, j))
+            results_table.to_csv(options.output_name, index=False)
+            predictions.to_csv("predictions_run_{}_fold_test_{}.csv".format(options.run, options.fold_test))
+            options.run += 1
 
 
 if __name__ == '__main__':

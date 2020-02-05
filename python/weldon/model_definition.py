@@ -4,9 +4,9 @@
 import tensorflow as tf
 from keras import backend as K
 
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-K.tensorflow_backend.set_session(tf.Session(config=config))
+#config = tf.ConfigProto(log_device_placement=True)
+#config.gpu_options.allow_growth = True
+#K.tensorflow_backend.set_session(tf.Session(config=config))
 
 from keras.optimizers import Adam
 from keras_utils import *
@@ -115,6 +115,7 @@ def load_model(parameter_dic, options, verbose=True):
                         type_prob=prob)
     if verbose:
         print(model.summary())
+#        print(config.gpu_options.allow_growth, flush=True)
 
     if optimizer_name == "Adam":
         opt = Adam(lr=learning_rate, epsilon=1e-08)

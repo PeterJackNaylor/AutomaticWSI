@@ -4,6 +4,9 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import dask.array as da
+import os
+import ipdb
+import sys
 
 from keras.utils import to_categorical
 from keras.utils import Sequence
@@ -41,11 +44,12 @@ def load(img_path, input_depth):
         h5f.close()
     else:
         raise TypeError("The format of the input images must be either h5 or npy.")
-    mat = da.from_array(img, chunks=("auto", -1))
+    #mat = da.from_array(img, chunks=("auto", -1))
+    mat = img
     return mat
 
 def parse_table_name(name):
-    return int(name.name.split('__')[-1].split('.')[0])
+    return name.name.split('__')[-1].split('.')[0]
 
 def add_index(table, index):
     """ Adds the start and end index (in the concatenated object of the dataset) to results_table.
@@ -65,7 +69,7 @@ def add_index(table, index):
     """
     index_table = pd.DataFrame.from_dict(index).T
     index_table.columns = ["start", "end"]
-    index_table["Biopsy"] = index_table.apply(lambda x: int(x.name.split('.')[0].split('__')[-1]), axis=1)
+    index_table["Biopsy"] = index_table.apply(lambda x: x.name.split('.')[0].split('/')[-1], axis=1)
     table = pd.merge(table, index_table, on='Biopsy')
     return table
 
@@ -114,7 +118,7 @@ def set_table(table, fold_test, inner_number_folds, index_table, y_name):
     table = add_index(table, index_table)
     train_table = table[table["fold"] != fold_test]
     test_index = table[table["fold"] == fold_test].index
-    stratified_variable = train_table["RCB_score"].round(0)
+    stratified_variable = train_table[y_name].round(0)
     skf = StratifiedKFold(n_splits=inner_number_folds, shuffle=True) # Assures that relative class frequency is preserve in each folds.
     obj = skf.split(train_table.index, stratified_variable)
     index_folds = [(train_index, val_index) for train_index, val_index in obj]
@@ -145,6 +149,7 @@ def load_concatenated_data(files, depth, mean):
     """
     index_file = {}
     list_table = []
+    last_index = 0
     for f in tqdm(files):
         mat = load(f, depth) - mean
         n_i = mat.shape[0]
@@ -152,9 +157,33 @@ def load_concatenated_data(files, depth, mean):
         index_file[f] = [last_index, last_index + n_i]
         last_index += n_i
         list_table.append(mat)
-    data = da.concatenate(list_table, axis=0)
+    data = np.concatenate(list_table, axis=0)
     return data, index_file
     
+def file_is_in_labels(files, table):
+    """ Returns the lsit of files that are also keys of the table (in the labels.csv file)
+    
+    Parameters
+    ----------
+    files : list[str]
+        list to the path of the files.
+    table : pd.DataFrame
+        names of files available in table (labels.csv)
+    
+    Returns
+    -------
+    list
+        list of path.
+    """
+    names = []
+    for f in files:
+        name = os.path.basename(f).split('.')[0]
+        names.append(name)
+    files = zip(names, files)
+    labels_name = set(table['Biopsy'])
+    filtered_files = [x[1] for x in files if x[0] in labels_name]
+    return filtered_files
+
  
 class data_handler:
     """Instanciate a data_handler Class. Creates iterators with the choosen characteristics with the functions
@@ -165,12 +194,11 @@ class data_handler:
                  mean, options):
         files = glob(path)
         depth = options.input_depth
-        last_index = 0
         mean = np.load(mean)
+        table = pd.read_csv(table_name)
+        files = file_is_in_labels(files, table)
         data, index_file = load_concatenated_data(files=files, depth=depth, mean=mean)
         self.data = data
-
-        table = pd.read_csv(table_name)
         table, obj, test_index = set_table(table, fold_test, 
                                            inner_cross_validation_number, 
                                            index_file, options.y_variable)
@@ -180,46 +208,35 @@ class data_handler:
         self.test_index = test_index
         self.size = options.size
         self.y_variable = options.y_variable
-        if self.y_variable in ["RCB_score", "ee_grade"]:
-            self.categorical = "categorical"
-        elif self.y_variable in ["stroma", "til"]:
-            self.table[self.y_variable] = self.table[self.y_variable] / 100
-            self.categorical = "regression_ce"
-        else:
-            self.categorical = "regression"
+       # if self.y_variable in ["RCB_score", "ee_grade"]:
+       #     self.categorical = "categorical"
+       # elif self.y_variable in ["stroma", "til"]:
+       #     self.table[self.y_variable] = self.table[self.y_variable] / 100
+       #     self.categorical = "regression_ce"
+       # else:
+       #     self.categorical = "regression"
 
     def dg_train(self, sub_fold_val):
         """
-        
-        Parameters
-        ----------
-        sub_fold_val : int
-            number of validation fold.
-        
-        Returns
-        -------
-        [type]
-            [description]
         """
+        
         train_index = self.obj[sub_fold_val][0] 
         return h5_Sequencer(train_index, self.table, self.data, self.batch_size, 
-                            self.size, categorical=self.categorical, 
+                            self.size, 
                             y_name=self.y_variable)
     def dg_val(self, sub_fold_val):
         val_index = self.obj[sub_fold_val][1]
         return h5_Sequencer(val_index, self.table, self.data, 1, 
-                            self.size, categorical=self.categorical, 
+                            self.size,  
                             y_name=self.y_variable)
 
     def dg_test(self):
         return h5_Sequencer(self.test_index, self.table, self.data, 
                             1, self.size, shuffle=False,
-                            categorical=self.categorical, 
                             y_name=self.y_variable)
     def dg_test_index_table(self):
         return h5_Sequencer(self.test_index, self.table, self.data, 
                             1, self.size, shuffle=False,
-                            categorical=self.categorical, 
                             y_name=self.y_variable), self.test_index, self.table
     def weights(self):
         if self.y_variable == "RCB_class":
@@ -241,7 +258,12 @@ def pj_fetch(name, table, size):
 
     If the slide has a number of tiles different than slide, then we sample uniformly `size` tiles
     among the available tiles. --> Why not sample all the cases in a Uniform ?
-    
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!                                                                   !!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!      Changer name par index                                       !!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!                                                                   !!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     Parameters
     ----------
     name : int
@@ -256,8 +278,9 @@ def pj_fetch(name, table, size):
     list
         list of indexes corresponding to the tiles, in the concatenated data object.
     """
-    start = table.ix[name, "start"]
-    end = table.ix[name, "end"]
+
+    start = table.iloc[name]["start"]
+    end = table.iloc[name]["end"]
     if end - start < size:
         slice_index = sample(start, end, size)
     elif (end - start) == size:
@@ -269,27 +292,27 @@ def pj_fetch(name, table, size):
 
 class h5_Sequencer(Sequence):
 
-    def __init__(self, index_patient, table, data, batch_size=1, size=10000, shuffle=True,
-                 categorical="categorical", y_name="RCB_class"):
+    def __init__(self, index_patient, table, data, batch_size=1, size=10000, shuffle=True, y_name="RCB_class"):
         n_classes = len(np.unique(table["RCB_class"]))
         if shuffle:
             np.random.shuffle(index_patient)
         self.index_patient = index_patient
-        if categorical == "categorical":
-            self.y_onehot = to_categorical(table.ix[self.index_patient, y_name], 
-                                           num_classes=n_classes)
-        elif categorical == "regression_ce":
-            shape = (table.ix[self.index_patient, y_name].shape[0], 2)
-            self.y_onehot = np.zeros(shape=shape)
-            self.y_onehot[:, 0] = table.ix[self.index_patient, y_name]
-            self.y_onehot[:, 1] = 1 - self.y_onehot[:, 0]
-        else:
-            self.y_onehot = np.array(table.ix[self.index_patient, y_name])
+       # if categorical == "categorical":
+       #     self.y_onehot = to_categorical(table.ix[self.index_patient, y_name], 
+       #                                    num_classes=n_classes)
+       # elif categorical == "regression_ce":
+       #     shape = (table.ix[self.index_patient, y_name].shape[0], 2)
+       #     self.y_onehot = np.zeros(shape=shape)
+       #     self.y_onehot[:, 0] = table.ix[self.index_patient, y_name]
+       #     self.y_onehot[:, 1] = 1 - self.y_onehot[:, 0]
+       # else:
+        self.y_onehot = np.array(table.iloc[self.index_patient][y_name])
         self.n_size = len(self.index_patient)
         self.batch_size = batch_size
         self.size = size
         self.data = data
         self.table = table
+        print("Initializing generator", flush=True)
 
     def __len__(self):
         return self.n_size // self.batch_size
@@ -310,7 +333,6 @@ class h5_Sequencer(Sequence):
             1: return_1[i] is an array containing the `size` encoded tiles of patient `i`
             2: return_2[i] is an array containing the `size` number of labels of patient `i`
         """
-
         batch_x = self.index_patient[idx * self.batch_size:(idx + 1) * self.batch_size]
         batch_y = self.y_onehot[idx * self.batch_size:(idx + 1) * self.batch_size]
 
@@ -320,10 +342,11 @@ class h5_Sequencer(Sequence):
             npy_array = data[index]
             return npy_array
 
-        list_f_x = [f(name).compute() for name in batch_x]
+        list_f_x = [f(name) for name in batch_x]
         batch_x = np.array(list_f_x).astype(float)
         batch_y = np.array(batch_y)
-        return batch_x, batch_y
+
+        return (batch_x, batch_y)
 
 
 
