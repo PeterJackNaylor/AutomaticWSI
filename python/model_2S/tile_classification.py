@@ -39,9 +39,9 @@ def get_options():
     parser.add_argument('--seed', required=False, default=42, 
                         metavar="str", type=int,
                         help='seed')
-    parser.add_argument('--cpus', required=False, default=1,
+    parser.add_argument('--cpu', required=False, default=1,
                         metavar="str", type=int,
-                        help='number of available cpus') 
+                        help='number of available cpu') 
     args = parser.parse_args()
     return args
 
@@ -68,7 +68,7 @@ def load_all_patients_ds(path):
     return data_feat
 
 def tile_cluster(mat, nclass, method="KMeans",
-                 seed=None, cpus=1, scaler=True):
+                 seed=None, cpu=1, scaler=True):
     """
     Creates a tile classification model in a unsupervised manner.
 
@@ -84,8 +84,8 @@ def tile_cluster(mat, nclass, method="KMeans",
             - "UMAP"
     seed: int, 
         fixed seed.
-    cpus: int, 
-        number of cpus to use during training.
+    cpu: int, 
+        number of cpu to use during training.
     scaler: bool, 
         Whether to mean substract and scale.
     Returns
@@ -104,9 +104,9 @@ def tile_cluster(mat, nclass, method="KMeans",
         scaler_f = None
 
     if method == "KMeans":
-        model = KMeans(n_clusters=nclass, random_state=seed, n_jobs=cpus).fit(mat)
+        model = KMeans(n_clusters=nclass, random_state=seed, n_jobs=cpu).fit(mat)
     elif method == "UMAP":
-        model = umap_model(2, nclass, seed, cpus)
+        model = umap_model(2, nclass, seed, cpu)
         model.fit(mat)        
     else:
         raise ValueError('Clustering method -- {} --  unknow'.format(method))
@@ -149,7 +149,7 @@ class umap_model:
         number of clusters for the unsupervised method
     seed: int,
     cpu: int,
-        number of cpus to use during training.
+        number of cpu to use during training.
     Returns
     -------
     A UMAP object which can fit, predict and plot results.
@@ -218,10 +218,22 @@ def create_features_for_all_tissue(tissues, func, nclass):
         zi = np.mean(onehot_yji, axis=0)
         z_i.append(zi)
         order.append(os.path.basename(tissue).replace(".npy", ""))
-    result = np.concatenate(z_i, axis=0)
+    result = np.stack(z_i)
     return result, order
 
 def one_hot(a, nclass):
+    """
+    Creates a one hot encoding of a vector a into nclass classes.
+    ----------
+    a: integer numpy array.
+    nclass: integer,
+        number of classes.
+    seed: int,
+    Returns
+    -------
+    A 2D numpy array, representing a one encoding of a
+    into nclass classes.
+    """
     b = np.zeros((a.size, nclass))
     b[np.arange(a.size),a] = 1
     return b
@@ -236,7 +248,7 @@ def main():
     # create tile clusters
     mod, pred_function = tile_cluster(all_tissue_ds, options.n_c, 
                                       method=options.clustering_method,
-                                      seed=options.seed, cpus=options.cpus, 
+                                      seed=options.seed, cpu=options.cpu, 
                                       scaler=True)
     
     # create Z_i by transforming each tissue tile into the one_hot_encoding

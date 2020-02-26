@@ -16,7 +16,9 @@ In test, you will find unit tests for some functions but also checks, intermedia
 home_tiling.sh
 home_model_2S.sh
 '''
+
 # Project work outline on thalassa:
+
  1) Run 'bash script/thalassa_tiling.sh' to create the tile encoding folders.
 
  In particular we have in `outputs/{PROJECT_NAME}/tiling/{analysis_level}` the folders: `info`, `mat`, `mean`, `visu`.

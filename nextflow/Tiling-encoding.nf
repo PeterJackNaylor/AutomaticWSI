@@ -11,6 +11,9 @@ params.tissue_bound_annot = "../Data/Biopsy/tissue_segmentation" // xml folder c
 tiff_files = file(params.tiff_location + "/*.tiff")
 boundaries_files = file(params.tissue_bound_annot)
 
+params.label = "/mnt/data3/pnaylor/CellularHeatmaps/outputs/label.csv"
+label = file(params.label)
+
 // input parameter
 params.weights = "imagenet"
 weights = params.weights
@@ -56,7 +59,7 @@ process WsiTilingEncoding {
 }
 
 mean_patient  .groupTuple() 
-              .set { all_patient_means }
+              .into { all_patient_means ; all_patient_means2 }
 
 
 process ComputeGlobalMean {
@@ -69,9 +72,28 @@ process ComputeGlobalMean {
 
     script:
     compute_mean = file('./python/preparing/compute_mean.py')
-
     output_process = "${output_folder}/tiling/$level/mean/"
+
     """
     python $compute_mean
+    """
+}
+
+process RandomForestlMean {
+    publishDir "${output_process}", overwrite: true
+    memory { 10.GB }
+    input:
+    set level, file(_) from all_patient_means2
+    file lab from label
+
+    output:
+    file('scores.csv')
+
+    script:
+    compute_rf = file("./python/naive_rf/compute_rf.py")
+    output_process = "${output_folder}/naive_rf_$level"
+
+    """
+    python $compute_rf
     """
 }
