@@ -36,7 +36,7 @@ process WsiTilingEncoding {
     each level from levels
     
     output:
-    file("${name}.npy")
+    set val("$level"), file("${name}.npy") into bags
     set val("$level"), file("${name}_mean.npy") into mean_patient
     file("${name}_info.txt")
     file("${name}_visu.png")
@@ -79,21 +79,68 @@ process ComputeGlobalMean {
     """
 }
 
-process RandomForestlMean {
-    publishDir "${output_process}", overwrite: true
-    memory { 10.GB }
+// process RandomForestlMean {
+//     publishDir "${output_process}", overwrite: true
+//     memory { 10.GB }
+//     input:
+//     set level, file(_) from all_patient_means2
+//     file lab from label
+
+//     output:
+//     file('scores.csv')
+
+//     script:
+//     compute_rf = file("./python/naive_rf/compute_rf.py")
+//     output_process = "${output_folder}/naive_rf_$level"
+
+//     """
+//     python $compute_rf
+//     """
+// }
+
+bags  .groupTuple() 
+      .set { level_bags }
+
+process Incremental_PCA {
+    publishDir "${output_process_pca}", mode: 'copy', overwrite: true
+
+    memory '60GB'
+    cpus '16'
+
     input:
-    set level, file(_) from all_patient_means2
-    file lab from label
+    set level, file(_) from level_bags
 
     output:
-    file('scores.csv')
-
+    file("*.joblib") into results_PCA
+    file("mat_pca")
     script:
-    compute_rf = file("./python/naive_rf/compute_rf.py")
-    output_process = "${output_folder}/naive_rf_$level"
+    output_process_pca = "${output_folder}/tiling/$level/pca"
+    train = file("./python/preparing/pca_partial.py")
+    transform = file("./python/preparing/transform_tile.py")
 
     """
-    python $compute_rf
+    python $train --path "./*.npy"
+    python $transform --path "./*.npy" --pca pca_tiles.joblib
+
     """
 }
+
+// process Transform_Tiles {
+//     publishDir "${output_mat_pca}", overwrite: true
+//     memory '60GB'
+
+//     input:
+//     file images from bags
+//     each file(res) from results_PCA
+
+//     output:
+//     file '*.npy' into transform_tiles
+
+//     script:
+//     output_mat_pca = "${output_folder}/tiling/$level/mat_pca"
+//     python_script = file("./python/preparing/transform_tile.py")
+
+//     """
+//     python ${python_script} --path $images --pca $res
+//     """
+// }
