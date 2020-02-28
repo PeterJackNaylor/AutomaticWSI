@@ -75,72 +75,58 @@ process ComputeGlobalMean {
     output_process = "${output_folder}/tiling/$level/mean/"
 
     """
-    python $compute_mean
+    python $compute_mean 
     """
 }
 
-// process RandomForestlMean {
-//     publishDir "${output_process}", overwrite: true
-//     memory { 10.GB }
-//     input:
-//     set level, file(_) from all_patient_means2
-//     file lab from label
-
-//     output:
-//     file('scores.csv')
-
-//     script:
-//     compute_rf = file("./python/naive_rf/compute_rf.py")
-//     output_process = "${output_folder}/naive_rf_$level"
-
-//     """
-//     python $compute_rf
-//     """
-// }
-
-bags  .groupTuple() 
-      .set { level_bags }
-
-process Incremental_PCA {
-    publishDir "${output_process_pca}", mode: 'copy', overwrite: true
-
-    memory '60GB'
-    cpus '16'
-
+y = ["Residual", "Prognostic"]
+process RandomForestlMean {
+    publishDir "${output_process}", overwrite: true
+    memory { 10.GB }
+    cpus 8
     input:
-    set level, file(_) from level_bags
+    set level, file(_) from all_patient_means2
+    file lab from label
+    each y_interest from y
 
     output:
-    file("*.joblib") into results_PCA
-    file("mat_pca")
+    file('*.txt')
+
     script:
-    output_process_pca = "${output_folder}/tiling/$level/pca"
-    train = file("./python/preparing/pca_partial.py")
-    transform = file("./python/preparing/transform_tile.py")
+    compute_rf = file("./python/naive_rf/compute_rf.py")
+    output_process = "${output_folder}/naive_rf_${level}/${y_interest}"
 
     """
-    python $train --path "./*.npy"
-    python $transform --path "./*.npy" --pca pca_tiles.joblib
-
+    python $compute_rf --label $label \
+                       --inner_fold 5 \
+                       --y_interest $y_interest \
+                       --cpu 8
     """
 }
 
-// process Transform_Tiles {
-//     publishDir "${output_mat_pca}", overwrite: true
+// bags  .groupTuple() 
+//       .set { level_bags }
+
+// process Incremental_PCA {
+//     publishDir "${output_process_pca}", mode: 'copy', overwrite: true
+
 //     memory '60GB'
+//     cpus '16'
 
 //     input:
-//     file images from bags
-//     each file(res) from results_PCA
+//     set level, file(_) from level_bags
 
 //     output:
-//     file '*.npy' into transform_tiles
-
+//     file("*.joblib") into results_PCA
+//     file("mat_pca")
 //     script:
-//     output_mat_pca = "${output_folder}/tiling/$level/mat_pca"
-//     python_script = file("./python/preparing/transform_tile.py")
+//     output_process_pca = "${output_folder}/tiling/$level/pca"
+//     train = file("./python/preparing/pca_partial.py")
+//     transform = file("./python/preparing/transform_tile.py")
 
 //     """
-//     python ${python_script} --path $images --pca $res
+//     python $train --path "./*.npy"
+//     python $transform --path "./*.npy" --pca pca_tiles.joblib
+
 //     """
 // }
