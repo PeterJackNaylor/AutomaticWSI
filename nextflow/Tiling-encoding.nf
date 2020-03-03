@@ -11,6 +11,9 @@ params.tissue_bound_annot = "../Data/Biopsy/tissue_segmentation" // xml folder c
 tiff_files = file(params.tiff_location + "/*.tiff")
 boundaries_files = file(params.tissue_bound_annot)
 
+params.label = "/mnt/data3/pnaylor/CellularHeatmaps/outputs/label.csv"
+label = file(params.label)
+
 // input parameter
 params.weights = "imagenet"
 weights = params.weights
@@ -33,7 +36,7 @@ process WsiTilingEncoding {
     each level from levels
     
     output:
-    file("${name}.npy")
+    set val("$level"), file("${name}.npy") into bags
     set val("$level"), file("${name}_mean.npy") into mean_patient
     file("${name}_info.txt")
     file("${name}_visu.png")
@@ -56,7 +59,7 @@ process WsiTilingEncoding {
 }
 
 mean_patient  .groupTuple() 
-              .set { all_patient_means }
+              .into { all_patient_means ; all_patient_means2 }
 
 
 process ComputeGlobalMean {
@@ -69,9 +72,61 @@ process ComputeGlobalMean {
 
     script:
     compute_mean = file('./python/preparing/compute_mean.py')
-
     output_process = "${output_folder}/tiling/$level/mean/"
+
     """
-    python $compute_mean
+    python $compute_mean 
     """
 }
+
+y = ["Residual", "Prognostic"]
+process RandomForestlMean {
+    publishDir "${output_process}", overwrite: true
+    memory { 10.GB }
+    cpus 8
+    input:
+    set level, file(_) from all_patient_means2
+    file lab from label
+    each y_interest from y
+
+    output:
+    file('*.txt')
+
+    script:
+    compute_rf = file("./python/naive_rf/compute_rf.py")
+    output_process = "${output_folder}/naive_rf_${level}/${y_interest}"
+
+    """
+    python $compute_rf --label $label \
+                       --inner_fold 5 \
+                       --y_interest $y_interest \
+                       --cpu 8
+    """
+}
+
+// bags  .groupTuple() 
+//       .set { level_bags }
+
+// process Incremental_PCA {
+//     publishDir "${output_process_pca}", mode: 'copy', overwrite: true
+
+//     memory '60GB'
+//     cpus '16'
+
+//     input:
+//     set level, file(_) from level_bags
+
+//     output:
+//     file("*.joblib") into results_PCA
+//     file("mat_pca")
+//     script:
+//     output_process_pca = "${output_folder}/tiling/$level/pca"
+//     train = file("./python/preparing/pca_partial.py")
+//     transform = file("./python/preparing/transform_tile.py")
+
+//     """
+//     python $train --path "./*.npy"
+//     python $transform --path "./*.npy" --pca pca_tiles.joblib
+
+//     """
+// }

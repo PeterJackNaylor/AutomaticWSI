@@ -8,18 +8,20 @@ r = params.resolution
 output_folder = "${output_folder}/model_2S_R${r}"
 
 // label
-params.label = "/Users/naylorpeter/Documents/Histopathologie/labels.csv"
+params.label = "/mnt/data3/pnaylor/CellularHeatmaps/outputs/label.csv"
 label = file(params.label)
+params.y_interest = "Residual"
+y_interest = params.y_interest
 
 // raw input
 params.input = "./outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}/tiling/${r}/mat/"
 encoded_bags = file(params.input + "/*.npy")
 
-inner_fold =  10
+inner_fold =  5
 
 // python files for model 1
-ploting_cluster = file("python_files/model_1/cluster_plots/ploting_cluster.py")
-classification_model = file('python_files/model_1/classification/classification_model.py')
+// ploting_cluster = file("python_files/model_1/cluster_plots/ploting_cluster.py")
+// classification_model = file('python_files/model_1/classification/classification_model.py')
 
 // parameters for model 1
 
@@ -50,7 +52,7 @@ process SubsamplingTissue {
     script:
     py_sub = file("./python/model_2S/subsample.py")
     name = npy.baseName
-    output_process = "${output_folder}/subsampling/${method}_ds/${r}"
+    output_process = "${output_folder}/subsampling/${method}_ds"
 
     """
     python $py_sub --npy $npy \
@@ -67,7 +69,7 @@ process TileClassification {
     publishDir "${output_process_zi}", pattern: "*.npy", overwrite: true
     publishDir "${output_process_zi}", pattern: "order_zi.pickle", overwrite: true
 
-    // memory '100GB'
+    memory '100GB'
     // cpus 8
 
     input:
@@ -88,7 +90,7 @@ process TileClassification {
     python $py_tile_classification --path . \
                                    --n_c $k \
                                    --clustering_method $clus \
-                                   --cpus 8 \
+                                   --cpu 8 \
                                    --seed 42
     """
 }
@@ -96,8 +98,10 @@ process TileClassification {
 process TissueClassification {
 
     publishDir "${output_process_visu}", pattern: "*.png", overwrite: true
-    publishDir "${output_process_model}", pattern: "model_classification", overwrite: true
     publishDir "${output_process_results}", pattern: "*.txt", overwrite: true
+    publishDir "${output_process_results}", pattern: "*.csv", overwrite: true
+    publishDir "${output_process_results}", pattern: "*.pickle", overwrite: true
+
     
     // cpus 8
 
@@ -107,24 +111,24 @@ process TissueClassification {
     
     output:
     file("*.txt")
-    file("model_classification")
+    file("*.pickle")
+    file("*.csv")
     file("*.png")
 
     script:
     py_tissue_classification = file("./python/model_2S/tissue_classification.py")
-    output_process_visu = "${output_folder}/tissue_classification/${name}_${method}/visu"
-    output_process_model = "${output_folder}/tissue_classification/${name}_${method}/model"
-    output_process_results = "${output_folder}/tissue_classification/results/"
+    output_process_visu = "${output_folder}/tissue_classification//${y_interest}/${name}_${method}/visu"
+    output_process_results = "${output_folder}/tissue_classification//${y_interest}/results/"
 
     // set val("${name}__${method}__${pred}"), file("*__error_scores.txt") into scores
     """
-    python $classification_model --main_name ${name}_${method} \
+    python $py_tissue_classification --main_name ${name}_${method} \
                                  --method $method \
                                  --label $label \
                                  --y_interest $y_interest \
                                  --dataset $npy \
                                  --order $order \
-                                 --cpus 8 \
+                                 --cpu 8 \
                                  --inner_fold $inner_fold 
     """
 }
