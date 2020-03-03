@@ -104,6 +104,61 @@ process RandomForestlMean {
     """
 }
 
+// keep bags_1 to collect them and process the PCA
+// bags_2 is a copy, to after compute the transformed tiles
+// bags_per_level = [($level, (*.npy))], for each level the whole tiles files.
+bags .into{ bags_1, bags_2 }
+bags_1 .groupTuple()
+     .set{ bags_per_level }
+
+process Incremental_PCA {
+    publishDir "${output_process_pca}", overwrite: true
+    memory '60GB'
+    cpus '16'
+
+    input:
+    tuple level, files from bags_per_level
+    
+    output:
+    tuple level, file("*.joblib") into results_PCA
+
+    script:
+    output_process_pca = "${output_folder}/tiling/${level}/pca"
+    input_tiles = "${output_folder}/tiling/${level}/mat/*.npy"
+    python_script = file("./python/preparing/pca_partial.py")
+
+    """
+    python $python_script --path "${input_tiles}"
+    """
+}
+
+// files_to_transform = [ ($level, pca_res_level, f1.npy ), ($level, pca_res_level, f2.npy), ... ]
+// begins to get filled as soon as a level has been treated by the PCA.
+results_PCA .combine(bags_2, by: 0) 
+            .set { files_to_transform } 
+
+process Transform_Tiles {
+
+    publishDir "${output_mat_pca}", overwrite: true
+    memory '60GB'
+
+    input:
+    tuple level, pca, tile from files_to_transform
+
+    output:
+    file '*.npy' into transform_tiles
+
+    script:
+    output_mat_pca = "${output_folder}/tiling/$level/mat_pca"
+    python_script = file("./python/preparing/transform_tile.py")
+    level = file(pca])
+
+    """
+    python ${python_script} --path $tile --pca $pca$
+    """
+}
+
+
 // bags  .groupTuple() 
 //       .set { level_bags }
 
