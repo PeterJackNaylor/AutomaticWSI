@@ -37,7 +37,7 @@ if __name__=="__main__":
     files = glob(os.path.join(args.path, "*.npy"))
     ipca = IncrementalPCA()
     batch = []
-    for path in tqdm(files[0:10]):
+    for path in tqdm(files):
         mat = np.load(path)
         if check_dim(batch):
             batch = np.concatenate(batch, axis=0)
