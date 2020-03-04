@@ -5,8 +5,7 @@ from tqdm import tqdm
 import argparse
 from glob import glob
 from joblib import load, dump
-import seaborn as sns
- 
+import os
 
 def check_dim(batch):
     """ Checks if batch is big enough for the incremental PCA to be 
@@ -23,7 +22,7 @@ def check_dim(batch):
         Is the batch big enough ?
     """
     if batch:
-        n_tiles = [x.shape[0] for x in batch].sum()
+        n_tiles = np.sum([x.shape[0] for x in batch])
         n_features = batch[-1].shape[1]
         ans = n_tiles >= n_features
     else:
@@ -35,11 +34,10 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--path", type = str, default=".", help="path to the files of tiles")
     args = parser.parse_args()
-    files = glob(args.path)
+    files = glob(os.path.join(args.path, "*.npy"))
     ipca = IncrementalPCA()
-
     batch = []
-    for path in tqdm(files[0:20]):
+    for path in tqdm(files[0:10]):
         mat = np.load(path)
         if check_dim(batch):
             batch = np.concatenate(batch, axis=0)

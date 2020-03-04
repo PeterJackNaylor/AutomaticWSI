@@ -4,8 +4,8 @@ params.PROJECT_NAME = "TEST"
 params.PROJECT_VERSION = "1-0"
 output_folder = "./outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}"
 
-params.tiff_location = "../Data/Biopsy" // tiff files to process
-params.tissue_bound_annot = "../Data/Biopsy/tissue_segmentation" // xml folder containing tissue segmentation mask for each patient
+params.tiff_location = "/mnt/data3/pnaylor/Data/Biopsy" // tiff files to process
+params.tissue_bound_annot = "/mnt/data3/pnaylor/Data/Biopsy/tissue_segmentation" // xml folder containing tissue segmentation mask for each patient
 
 // input file
 tiff_files = file(params.tiff_location + "/*.tiff")
@@ -79,35 +79,35 @@ process ComputeGlobalMean {
     """
 }
 
-y = ["Residual", "Prognostic"]
-process RandomForestlMean {
-    publishDir "${output_process}", overwrite: true
-    memory { 10.GB }
-    cpus 8
-    input:
-    set level, file(_) from all_patient_means2
-    file lab from label
-    each y_interest from y
-
-    output:
-    file('*.txt')
-
-    script:
-    compute_rf = file("./python/naive_rf/compute_rf.py")
-    output_process = "${output_folder}/naive_rf_${level}/${y_interest}"
-
-    """
-    python $compute_rf --label $label \
-                       --inner_fold 5 \
-                       --y_interest $y_interest \
-                       --cpu 8
-    """
-}
+//y = ["Residual", "Prognostic"]
+//process RandomForestlMean {
+//    publishDir "${output_process}", overwrite: true
+//    memory { 10.GB }
+//    cpus 8
+//    input:
+//    set level, file(_) from all_patient_means2
+//    file lab from label
+//    each y_interest from y
+//
+//    output:
+//    file('*.txt')
+//
+//    script:
+//    compute_rf = file("./python/naive_rf/compute_rf.py")
+//    output_process = "${output_folder}/naive_rf_${level}/${y_interest}"
+//
+//    """
+//    python $compute_rf --label $label \
+//                       --inner_fold 5 \
+//                       --y_interest $y_interest \
+//                       --cpu 8
+//    """
+//}
 
 // keep bags_1 to collect them and process the PCA
 // bags_2 is a copy, to after compute the transformed tiles
 // bags_per_level = [($level, (*.npy))], for each level the whole tiles files.
-bags .into{ bags_1, bags_2 }
+bags .into{ bags_1; bags_2 }
 bags_1 .groupTuple()
      .set{ bags_per_level }
 
@@ -123,12 +123,12 @@ process Incremental_PCA {
     tuple level, file("*.joblib") into results_PCA
 
     script:
-    output_process_pca = "${output_folder}/tiling/${level}/pca"
-    input_tiles = "${output_folder}/tiling/${level}/mat/*.npy"
+    output_process_pca = "${output_folder}/tiling/${level}/pca/"
+    input_tiles = file("${output_folder}/tiling/${level}/mat")
     python_script = file("./python/preparing/pca_partial.py")
 
     """
-    python $python_script --path "${input_tiles}"
+    python $python_script --path ${input_tiles}
     """
 }
 
@@ -151,10 +151,10 @@ process Transform_Tiles {
     script:
     output_mat_pca = "${output_folder}/tiling/$level/mat_pca"
     python_script = file("./python/preparing/transform_tile.py")
-    level = file(pca])
+    level = file(pca)
 
     """
-    python ${python_script} --path $tile --pca $pca$
+    python ${python_script} --path $tile --pca $pca
     """
 }
 
