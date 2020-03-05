@@ -4,6 +4,7 @@ from joblib import load
 import numpy as np
 import os
 from glob import glob
+from tqdm import tqdm
 
 def transform_pca(dataset, pca):
     """ Encodes the dataset in the basis of PCA.
@@ -34,13 +35,11 @@ if __name__=="__main__":
     parser.add_argument("--pca", 
                         type=str,
                         help="Path to the fitted pca model")
+
     args = parser.parse_args()
-    folder = "mat_pca"
-    os.mkdir(folder)
     ipca = load(args.pca)
-    for el in tqdm(glob(args.path)):
-        wsi = np.load(el)
-        wsi_transformed = transform_pca(wsi, ipca)
-        name = os.path.join(folder, os.path.basename(el))
-        np.save(name, wsi_transformed)
+    wsi = np.load(args.path)
+    wsi_transformed = transform_pca(wsi, ipca)
+    name = os.path.basename(args.path)
+    np.save(name, wsi_transformed)
 
