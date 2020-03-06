@@ -79,30 +79,30 @@ process ComputeGlobalMean {
     """
 }
 
-//y = ["Residual", "Prognostic"]
-//process RandomForestlMean {
-//    publishDir "${output_process}", overwrite: true
-//    memory { 10.GB }
-//    cpus 8
-//    input:
-//    set level, file(_) from all_patient_means2
-//    file lab from label
-//    each y_interest from y
-//
-//    output:
-//    file('*.txt')
-//
-//    script:
-//    compute_rf = file("./python/naive_rf/compute_rf.py")
-//    output_process = "${output_folder}/naive_rf_${level}/${y_interest}"
-//
-//    """
-//    python $compute_rf --label $label \
-//                       --inner_fold 5 \
-//                       --y_interest $y_interest \
-//                       --cpu 8
-//    """
-//}
+y = ["Residual", "Prognostic"]
+process RandomForestlMean {
+   publishDir "${output_process}", overwrite: true
+   memory { 10.GB }
+   cpus 8
+   input:
+   set level, file(_) from all_patient_means2
+   file lab from label
+   each y_interest from y
+
+   output:
+   file('*.txt')
+
+   script:
+   compute_rf = file("./python/naive_rf/compute_rf.py")
+   output_process = "${output_folder}/naive_rf_${level}/${y_interest}"
+
+   """
+   python $compute_rf --label $label \
+                      --inner_fold 5 \
+                      --y_interest $y_interest \
+                      --cpu 8
+   """
+}
 
 // keep bags_1 to collect them and process the PCA
 // bags_2 is a copy, to after compute the transformed tiles
@@ -143,45 +143,38 @@ process Transform_Tiles {
     memory '60GB'
 
     input:
-    tuple level, pca, tile from files_to_transform
+    tuple level, file(pca), tile from files_to_transform
 
     output:
-    file '*.npy' into transform_tiles
+    tuple level, file("*.npy") into transform_tiles
 
     script:
     output_mat_pca = "${output_folder}/tiling/$level/mat_pca"
     python_script = file("./python/preparing/transform_tile.py")
-    level = file(pca)
 
     """
     python ${python_script} --path $tile --pca $pca
     """
 }
 
+transform_tiles  .groupTuple() 
+              .set { transform_tiles_per_level }
 
-// bags  .groupTuple() 
-//       .set { level_bags }
+process ComputePCAGlobalMean {
+    publishDir "${output_pca_mean}", overwrite: true
+    memory { 10.GB }
 
-// process Incremental_PCA {
-//     publishDir "${output_process_pca}", mode: 'copy', overwrite: true
+    input:
+    set level, file(_) from transform_tiles_per_level
+    output:
+    file('mean.npy')
 
-//     memory '60GB'
-//     cpus '16'
+    script:
+    output_pca_mean = "${output_folder}/tiling/$level/pca_mean"
+    compute_mean_pca = file('./python/preparing/compute_mean_pca.py')
 
-//     input:
-//     set level, file(_) from level_bags
-
-//     output:
-//     file("*.joblib") into results_PCA
-//     file("mat_pca")
-//     script:
-//     output_process_pca = "${output_folder}/tiling/$level/pca"
-//     train = file("./python/preparing/pca_partial.py")
-//     transform = file("./python/preparing/transform_tile.py")
-
-//     """
-//     python $train --path "./*.npy"
-//     python $transform --path "./*.npy" --pca pca_tiles.joblib
-
-//     """
-// }
+    """
+    echo $level
+    python $compute_mean_pca
+    """
+}

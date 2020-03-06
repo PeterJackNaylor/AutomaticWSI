@@ -12,9 +12,6 @@ def get_options():
     parser.add_argument('--table', required=True,
                         metavar="str", type=str,
                         help='patient label table and fold')
-    parser.add_argument('--inner_cross_validation_number', required=True,
-                        metavar="int", type=int,
-                        help='number of sub folds for inner cross validation')
     parser.add_argument('--batch_size', required=True,
                         metavar="str", type=int,
                         help='batch size')
@@ -36,9 +33,6 @@ def get_options():
     parser.add_argument('--size', required=True,
                         metavar="str", type=int,
                         help='number of instances per patient')
-    parser.add_argument('--class_type', required=True,
-                        metavar="str", type=str,
-                        help='classification problem at hand')
     parser.add_argument('--gaussian_noise',
                         metavar="str", type=int, default=0,
                         help='if to apply gaussian noise to the input')
@@ -48,12 +42,15 @@ def get_options():
     parser.add_argument('--repeat', required=True,
                         metavar="str", type=int,
                         help='number of repeats')
-    parser.add_argument('--n_fold',
+    parser.add_argument('--inner_folds',
                         metavar="int", type=int, default=10,
-                        help='number of fold')
-    parser.add_argument('--y_variable', required=False,
+                        help='number of inner folds')
+    parser.add_argument('--y_interest', required=False,
                         metavar="str", type=str,
                         help='name of the variable to predict Residual | Prognostic | fold ...')
+    parser.add_argument('--model', required=False,
+                        metavar="str", type=str,
+                        help='name of the model')
     args = parser.parse_args()
 
     if args.gaussian_noise == 0:
@@ -65,13 +62,14 @@ def get_options():
     args.max_queue_size = 10
     args.workers = 1
     args.use_multiprocessing = False
-    args.input_depth = 2048 # 512
+    args.input_depth = 1024 # 512
 
     args.learning_rate_start = -6
     args.learning_rate_stop = 1
     args.weight_decay_start = -4
     args.weight_decay_stop = 1
 
+    args.activation_middle = "tanh"
     args.hidden_fcn_list = [32, 64, 128, 256]
     args.hidden_btleneck_list = [4, 8, 32, 64]
 

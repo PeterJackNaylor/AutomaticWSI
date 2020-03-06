@@ -67,6 +67,10 @@ def dense_bn_act_drop(i_layer, number_of_filters, name, wd, dr):
         weight decay.
     dr : float
         dropout rate (between 0 and 1)
+    Returns
+    -------
+    Tensor
+        Output Tensor.
     """
 
     x_i = Dense(number_of_filters, activation=None, use_bias=True,

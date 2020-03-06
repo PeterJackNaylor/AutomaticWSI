@@ -38,6 +38,7 @@ def load(img_path, input_depth):
     
     if img_path.endswith('.npy'):
         img = np.load(img_path)[:,:input_depth]
+        img = img.astype('float32')
     elif img_path.endswith('.h5'):
         h5f = h5py.File(img_path, 'r')
         img = h5f['dataset_1'][:, :input_depth]
@@ -95,7 +96,7 @@ def set_table(table, fold_test, inner_number_folds, index_table, y_name):
     index_table : dict
         maps each file (key) to its start and end index in the data object (concatenated encoded bags)
     y_name : str
-        or "y_variable", is the name of the target variable.
+        or "y_interest", is the name of the target variable.
     
     Returns
     -------
@@ -138,16 +139,23 @@ def load_concatenated_data(files, depth, mean):
         2: index_file dictionnary, indicating start and end indexes of each patients in the concatenated matrix.
     """
     index_file = {}
-    list_table = []
+    list_table = {} 
     last_index = 0
     for f in tqdm(files):
-        mat = load(f, depth) - mean
+        mat = load(f, depth) - mean[:depth]
         n_i = mat.shape[0]
-        # index_table[f] = mat
         index_file[f] = [last_index, last_index + n_i]
         last_index += n_i
-        list_table.append(mat)
-    data = np.concatenate(list_table, axis=0)
+        list_table[f] = mat
+
+    # I removed np concatenate, so that the following code is better optimised in RAM
+    n, p = mat.shape
+    data = np.zeros(shape=(last_index, p), dtype='float32')
+    for f in tqdm(files):
+        b_idx, l_idx = index_file[f]
+        data[b_idx:l_idx] = list_table[f]
+        del list_table[f]
+
     return data, index_file
     
 def file_is_in_labels(files, table):
@@ -183,31 +191,26 @@ class data_handler:
     for a subsequent neural network training with custom data.
     """
     def __init__(self, path, fold_test, table_name, 
-                 inner_cross_validation_number, batch_size, 
+                 inner_fold, batch_size, 
                  mean, options):
         files = glob(path)
         depth = options.input_depth
-        mean = np.load(mean)
+        mean = np.load(mean).astype("float32")
         table = pd.read_csv(table_name)
         files = file_is_in_labels(files, table)
         data, index_file = load_concatenated_data(files=files, depth=depth, mean=mean)
+
         self.data = data
         table, obj, test_index = set_table(table, fold_test, 
-                                           inner_cross_validation_number, 
-                                           index_file, options.y_variable)
+                                           inner_fold, 
+                                           index_file, options.y_interest)
         self.table = table
         self.obj = obj
         self.batch_size = batch_size
         self.test_index = test_index
         self.size = options.size
-        self.y_variable = options.y_variable
-       # if self.y_variable in ["RCB_score", "ee_grade"]:
-       #     self.categorical = "categorical"
-       # elif self.y_variable in ["stroma", "til"]:
-       #     self.table[self.y_variable] = self.table[self.y_variable] / 100
-       #     self.categorical = "regression_ce"
-       # else:
-       #     self.categorical = "regression"
+        self.y_interest = options.y_interest
+        
 
     def dg_train(self, fold):
         """
@@ -231,7 +234,7 @@ class data_handler:
                             self.data, 
                             self.batch_size, 
                             self.size, 
-                            y_name=self.y_variable)
+                            y_name=self.y_interest)
 
     def dg_val(self, fold):
         """
@@ -255,7 +258,7 @@ class data_handler:
                             self.data, 
                             self.batch_size,
                             self.size,  
-                            y_name=self.y_variable)
+                            y_name=self.y_interest)
 
     def dg_test(self):
         """
@@ -270,7 +273,7 @@ class data_handler:
         """
         return h5_Sequencer(self.test_index, self.table, self.data, 
                             1, self.size, shuffle=False,
-                            y_name=self.y_variable)
+                            y_name=self.y_interest)
     def dg_test_index_table(self):
         """
         Returns a h5_sequencer following the object template given
@@ -287,7 +290,7 @@ class data_handler:
         """
         return h5_Sequencer(self.test_index, self.table, self.data, 
                             1, self.size, shuffle=False,
-                            y_name=self.y_variable), self.test_index, self.table
+                            y_name=self.y_interest), self.test_index, self.table
     def weights(self):
         """
         Returns a dictionnary corresponding to the weights
@@ -295,8 +298,8 @@ class data_handler:
         of each separate class. Does not work for fully convolutional
         layers.
         """
-        n_0 = self.table[self.table[self.y_variable] == 0].shape[0]
-        n_1 = self.table[self.table[self.y_variable] == 1].shape[0]
+        n_0 = self.table[self.table[self.y_interest] == 0].shape[0]
+        n_1 = self.table[self.table[self.y_interest] == 1].shape[0]
         p_0 = n_0 / (n_0 + n_1)
         p_1 = n_1 / (n_0 + n_1)
         scaler = 1 / min(p_0, p_1)
@@ -350,7 +353,8 @@ class h5_Sequencer(Sequence):
         if shuffle:
             np.random.shuffle(index_patient)
         self.index_patient = index_patient
-        self.y_onehot = np.array(table.iloc[self.index_patient][y_name])
+        self.y_onehot = to_categorical(np.array(table.iloc[self.index_patient][y_name]), n_classes)
+
         self.n_size = len(self.index_patient)
         self.batch_size = batch_size
         self.size = size
@@ -389,7 +393,6 @@ class h5_Sequencer(Sequence):
         list_f_x = [f(name) for name in batch_x]
         batch_x = np.array(list_f_x).astype(float)
         batch_y = np.array(batch_y)
-
         return (batch_x, batch_y)
 
 

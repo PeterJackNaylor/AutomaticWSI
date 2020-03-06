@@ -43,9 +43,7 @@ def sample_hyperparameters(options, validation_fold):
     dic["drop_out"] = random.uniform(low=0.0, high=0.5)
     dic["hidden_fcn"] = random.choice(options.hidden_fcn_list)
     dic["hidden_btleneck"] = random.choice(options.hidden_btleneck_list)
-    fold_test = options.fold_test - 1
-    possible_val_fold = [el for el in range(options.n_fold) if fold_test != el] # Pourquoi ? Si le test fold a précedemment été séparé, et qu'on a Kfoldé le dataset seulement sur trainfold je vois pas l'intéret.
-    dic["validation_fold"] = possible_val_fold[validation_fold]
+    dic["validation_fold"] = validation_fold
     return dic
 
 def call_backs(options):
@@ -88,7 +86,7 @@ def evaluate_test(model, data, options, repeat=5):
     final_scores = final_scores / repeat
 
     y_test = model.predict_generator(dg_test)[:,0]
-    y_true = table.iloc[test_index][options.y_variable]
+    y_true = table.iloc[test_index][options.y_interest]
     new_table = DataFrame({"y_true": y_true, "y_test": y_test}, index=test_index)
     return list(final_scores), new_table
 def trunc_if_possible(el):
@@ -98,14 +96,9 @@ def trunc_if_possible(el):
         return el
 
 def fill_table(history, scores, table, parameter_dic, options):
-    if options.y_variable in ["RCB_class", "ee_grade"]:
-        train_values = ['loss', 'acc', 'recall', 'precision', 'f1']
-        val_values = ['val_loss', 'val_acc', 'val_recall', 'val_precision', 'val_f1']
-        test_values = ['test_loss', 'test_acc', 'test_recall', 'test_precision', 'test_f1']
-    else:
-        train_values = ['loss', 'mean_squared_error']
-        val_values = ['val_loss', 'val_mean_squared_error']
-        test_values = ['test_loss', 'test_mean_squared_error']
+    train_values = ['loss', 'acc', 'recall', 'precision', 'f1']
+    val_values = ['val_loss', 'val_acc', 'val_recall', 'val_precision', 'val_f1']
+    test_values = ['test_loss', 'test_acc', 'test_recall', 'test_precision', 'test_f1']
     parameters_values = list(parameter_dic.keys())
     model_values = ['k', 'pooling', 'batch_size', 'size', 
                     'input_depth', 'fold_test', "run_number"]
@@ -133,36 +126,24 @@ def main():
     path = options.path
     fold_test = options.fold_test - 1 
     table_name = options.table
-    inner_cross_validation_number = options.inner_cross_validation_number
     batch_size = options.batch_size
-    class_type = options.class_type
-    seed = options.seed
     
 
     ### data business
     data = data_handler(path, fold_test, 
-                        table_name, options.n_fold, 
+                        table_name, options.inner_folds, 
                         batch_size, mean, options)
-    if options.y_variable in ["RCB_class", "ee_grade"]:
-        columns = ['loss', 'acc', 'recall', 'precision', 'f1', 'val_loss', 
-                   'val_acc', 'val_recall', 'val_precision', 'val_f1', 
-                   'test_loss', 'test_acc', 'test_recall', 'test_precision', 
-                   'test_f1', 'hidden_btleneck', 'hidden_fcn', 'drop_out', 
-                   'validation_fold', 'learning_rate', 'weight_decay', 
-                   'gaussian_noise', 'k', 'model', 'pooling', 'batch_size', 
-                   'size', 'input_depth', 'fold_test', 'run_number']
-    else:
-        columns = ['loss', 'mean_squared_error', 'val_loss', 
-                   'val_mean_squared_error', 'test_loss', 'test_mean_squared_error', 
-                   'hidden_btleneck', 'hidden_fcn', 'drop_out', 
-                   'validation_fold', 'learning_rate', 'weight_decay', 
-                   'gaussian_noise', 'k', 'model', 'pooling', 'batch_size', 
-                   'size', 'input_depth', 'fold_test', 'run_number']
-
-    results_table = DataFrame(index=range(options.repeat*(options.n_fold - 1)), columns=columns) # Link with the previous table ? Or just result_table ?
+    columns = ['loss', 'acc', 'recall', 'precision', 'f1', 'val_loss', 
+                'val_acc', 'val_recall', 'val_precision', 'val_f1', 
+                'test_loss', 'test_acc', 'test_recall', 'test_precision', 
+                'test_f1', 'hidden_btleneck', 'hidden_fcn', 'drop_out', 
+                'validation_fold', 'learning_rate', 'weight_decay', 
+                'gaussian_noise', 'k', 'model', 'pooling', 'batch_size', 
+                'size', 'input_depth', 'fold_test', 'run_number']
+    results_table = DataFrame(index=range(options.repeat*(options.inner_folds)), columns=columns) # Link with the previous table ? Or just result_table ?
     options.run = 0
     for i in range(options.repeat):
-        for j in range(options.n_fold - 1): # Defines which fold will be the validation fold
+        for j in range(options.inner_folds): # Defines which fold will be the validation fold
             parameter_dic = sample_hyperparameters(options, j)
             model = load_model(parameter_dic, options)
             print("begin training", flush=True)
