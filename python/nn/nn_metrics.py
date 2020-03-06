@@ -41,7 +41,4 @@ def f1(y_true, y_pred):
     return f1_
 
 def import_metrics(loss="categorical_crossentropy"):
-    if loss == "categorical":
-        return ["accuracy", recall, precision, f1]
-    else:
-        return ["mse"]
+    return ["accuracy", recall, precision, f1]

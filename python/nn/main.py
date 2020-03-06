@@ -62,8 +62,8 @@ def train_model(model, data, parameter_dic, options):
                                   epochs=options.epochs, callbacks=callbacks_list, 
                                   class_weight=data.weights(), 
                                   max_queue_size=options.max_queue_size, workers=options.workers, 
-                                  use_multiprocessing=options.use_multiprocessing,
-                                  verbose=2)
+                                  use_multiprocessing=options.use_multiprocessing)#,
+                                  #verbose=2)
     model.save('my_model_run_number_{}.h5'.format(options.run))
 
     return model, history
@@ -117,7 +117,7 @@ def fill_table(history, scores, table, parameter_dic, options):
 
 def main():
 
-    config = tf.ConfigProto(log_device_placement=True)
+    config = tf.ConfigProto(log_device_placement=False)
     config.gpu_options.allow_growth = True
     K.tensorflow_backend.set_session(tf.Session(config=config))
 
