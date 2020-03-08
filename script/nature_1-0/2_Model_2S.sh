@@ -1,5 +1,4 @@
 
-
 for y_interest in Residual Prognostic
 do
     for res in 0 1 2

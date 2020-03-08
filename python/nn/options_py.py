@@ -18,7 +18,8 @@ def get_options():
     parser.add_argument('--epochs', required=True,
                         metavar="str", type=int,
                         help='number of epochs')
-    parser.add_argument('--seed', required=True,
+    parser.add_argument('--seed', required=False,
+                        default=42, 
                         metavar="str", type=int,
                         help='seed')
     parser.add_argument('--cpus',
