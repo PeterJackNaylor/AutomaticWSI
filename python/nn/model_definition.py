@@ -117,9 +117,15 @@ def model_one_one(n_classes, hidden_btleneck=128, hidden_fcn=512,
         x_i = GlobalAveragePooling1D()(x_i)
     elif aggr == "max":
         x_i = GlobalMaxPooling1D()(x_i)
-    elif aggr == "owkin":
+    elif aggr == "weldon":
         x_i = WeldonPooling(x_i, k)
-    
+    elif aggr == "weldon_conc":
+        s_i = conv_shape_bn_act_drop(x_i, 1, weight_decay, 
+                                     drop_out, input_size, name="score",
+                                     activation=activation_middle)
+        x_i = WeldonConcPooling(s_i, x_i, k)
+        x_i = Flatten()(x_i)
+
     x_i = dense_bn_act_drop(x_i, hidden_fcn, "dense", weight_decay, drop_out)
 
     output_layer = Dense(n_classes, activation="softmax", use_bias=True,
@@ -187,8 +193,14 @@ def model_one_two(n_classes, hidden_btleneck=128, hidden_fcn=512,
         x_i = GlobalAveragePooling1D()(x_i)
     elif aggr == "max":
         x_i = GlobalMaxPooling1D()(x_i)
-    elif aggr == "owkin":
+    elif aggr == "weldon":
         x_i = WeldonPooling(x_i, k)
+    elif aggr == "weldon_conc":
+        s_i = conv_shape_bn_act_drop(x_i, 1, weight_decay, 
+                                     drop_out, input_size, name="score",
+                                     activation=activation_middle)
+        x_i = WeldonConcPooling(s_i, x_i, k)
+        x_i = Flatten()(x_i)
     
     x_i = dense_bn_act_drop(x_i, hidden_fcn, "fcn_2_1", 
                             weight_decay, drop_out)
@@ -267,8 +279,23 @@ def model_two_two(n_classes, hidden_btleneck=128, hidden_fcn=512, weight_decay=0
         x_i = GlobalAveragePooling1D()(x_i) 
     elif aggr == "max":
         x_i = GlobalMaxPooling1D()(x_i)
-    elif aggr == "owkin":
+    elif aggr == "weldon":
         x_i = WeldonPooling(x_i, k)
+    elif aggr == "weldon_conc":
+        s_i = conv_shape_bn_act_drop(x_i, 1, weight_decay, 
+                                     drop_out, input_size, name="score",
+                                     activation=activation_middle)
+        x_i = WeldonConcPooling(s_i, x_i, k)
+        x_i = Flatten()(x_i)
+    elif aggr == "conan_plus":
+        s_i = conv_shape_bn_act_drop(x_i, 1, weight_decay, 
+                                     drop_out, input_size, name="score",
+                                     activation=activation_middle)
+        weldon_conc = WeldonConcPooling(s_i, x_i, k)
+        weldon_conc = Flatten()(weldon_conc)
+
+        avg_encoding = GlobalAveragePooling1D()(x_i)
+        x_i = Concatenate(axis=-1)([weldon_conc, avg_encoding])
 
     x_i = dense_bn_act_drop(x_i, hidden_fcn, "fcn_2_1", 
                             weight_decay, drop_out)
@@ -286,7 +313,7 @@ def model_two_two(n_classes, hidden_btleneck=128, hidden_fcn=512, weight_decay=0
 
 def model_two_two_skip(n_classes, hidden_btleneck=128, hidden_fcn=512, 
                        weight_decay=0.0005, input_depth=2048, drop_out=0.5, 
-                       aggr="avg", gaussian_param=0, activation_middle="relu"):
+                       aggr="avg", gaussian_param=0, k=10, activation_middle="relu"):
 
     """
     The simplest version of model_1.
@@ -354,6 +381,14 @@ def model_two_two_skip(n_classes, hidden_btleneck=128, hidden_fcn=512,
         x_ik = GlobalAveragePooling1D()(x_i)
     elif aggr == "max":
         x_ik = GlobalMaxPooling1D()(x_i)
+    elif aggr == "weldon":
+        x_i = WeldonPooling(x_i, k)
+    elif aggr == "weldon_conc":
+        s_i = conv_shape_bn_act_drop(x_i, 1, weight_decay, 
+                                     drop_out, input_size, name="score",
+                                     activation=activation_middle)
+        x_i = WeldonConcPooling(s_i, x_i, k)
+        x_i = Flatten()(x_i)
     else:
         raise ValueError("aggr not specified to avg or max")
     x_i = dense_bn_act_drop(x_ik, hidden_fcn, "fcn_2_1", 
@@ -418,7 +453,7 @@ def load_model(parameter_dic, options, verbose=True):
         model = model_one_two(n_classes, hidden_btleneck=1, 
                               hidden_fcn=hidden_fcn, weight_decay=weight_decay,
                               input_depth=input_depth, drop_out=drop_out, 
-                              aggr="owkin", gaussian_param=gaussian_param, k=k,
+                              aggr="weldon", gaussian_param=gaussian_param, k=k,
                               activation_middle=activation_middle)
     elif options.model == "model_1S_a":
         model = model_one_one(n_classes, hidden_btleneck=hidden_btleneck, 
@@ -439,10 +474,34 @@ def load_model(parameter_dic, options, verbose=True):
                               gaussian_param=gaussian_param, k=k,
                               activation_middle=activation_middle)
     elif options.model == "model_1S_d":
-        model = model_two_two_skip(n_classes,hidden_btleneck=hidden_btleneck, 
+        model = model_two_two_skip(n_classes, hidden_btleneck=hidden_btleneck, 
                                   hidden_fcn=hidden_fcn, weight_decay=weight_decay,
                                   input_depth=input_depth, drop_out=drop_out, aggr=aggr, 
-                                  gaussian_param=gaussian_param,
+                                  gaussian_param=gaussian_param, k=k,
+                                  activation_middle=activation_middle)
+    elif options.model == "weldon_plus_a":
+        model = model_one_two(n_classes, hidden_btleneck=hidden_btleneck, 
+                              hidden_fcn=hidden_fcn, weight_decay=weight_decay,
+                              input_depth=input_depth, drop_out=drop_out, aggr="weldon_conc", 
+                              gaussian_param=gaussian_param, k=k,
+                              activation_middle=activation_middle)
+    elif options.model == "weldon_plus_b":
+        model = model_two_two(n_classes, hidden_btleneck=hidden_btleneck, 
+                              hidden_fcn=hidden_fcn, weight_decay=weight_decay,
+                              input_depth=input_depth, drop_out=drop_out, aggr="weldon_conc", 
+                              gaussian_param=gaussian_param, k=k,
+                              activation_middle=activation_middle)
+    elif options.model == "weldon_plus_c":
+        model = model_two_two_skip(n_classes, hidden_btleneck=hidden_btleneck, 
+                                  hidden_fcn=hidden_fcn, weight_decay=weight_decay,
+                                  input_depth=input_depth, drop_out=drop_out, aggr="weldon_conc", 
+                                  gaussian_param=gaussian_param, k=k,
+                                  activation_middle=activation_middle)
+    elif options.model == "conan_a":
+        model = model_two_two(n_classes, hidden_btleneck=hidden_btleneck, 
+                                  hidden_fcn=hidden_fcn, weight_decay=weight_decay,
+                                  input_depth=input_depth, drop_out=drop_out, aggr="conan_plus", 
+                                  gaussian_param=gaussian_param, k=k,
                                   activation_middle=activation_middle)
     else:
         pass
