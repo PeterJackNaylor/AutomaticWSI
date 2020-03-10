@@ -35,8 +35,7 @@ def createfolds(table, num, strat_var):
 def main():
 
     options = get_options()
-    table = pd.read_csv(options.table)
-    import pdb; pdb.set_trace()
+    table = pd.read_csv(options.table)    
     table = createfolds(table, options.folds, 'RCB_class')
     table.to_csv(options.output_name, index=False)
 
