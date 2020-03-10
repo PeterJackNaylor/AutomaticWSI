@@ -5,6 +5,7 @@ from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 import sys
 from data_handler import data_handler
 from model_definition import load_model
+from evaluate_nn import evaluate_model
 import ipdb
 
 import tensorflow as tf
@@ -43,7 +44,6 @@ def sample_hyperparameters(options, validation_fold):
     dic["drop_out"] = random.uniform(low=0.0, high=0.5)
     dic["hidden_fcn"] = random.choice(options.hidden_fcn_list)
     dic["hidden_btleneck"] = random.choice(options.hidden_btleneck_list)
-    dic["validation_fold"] = validation_fold
     return dic
 
 def call_backs(options):
@@ -54,13 +54,12 @@ def call_backs(options):
     # return [lr_reducer]
     return []
 
-def train_model(model, data, parameter_dic, options):
+def train_model(model, dg_train, dg_val, class_weight, options):
     callbacks_list = call_backs(options)
-    validation_fold = parameter_dic["validation_fold"]
-    history = model.fit_generator(data.dg_train(validation_fold), 
-                                  validation_data=data.dg_val(validation_fold),
+    history = model.fit_generator(dg_train, 
+                                  validation_data=dg_val,
                                   epochs=options.epochs, callbacks=callbacks_list, 
-                                  class_weight=data.weights(), 
+                                  class_weight=class_weight, 
                                   max_queue_size=options.max_queue_size, workers=options.workers, 
                                   use_multiprocessing=options.use_multiprocessing)#,
                                   #verbose=2)
@@ -69,33 +68,38 @@ def train_model(model, data, parameter_dic, options):
     return model, history
 
 
-def evaluate_test(model, data, options, repeat=5):
+def evaluate_model_generator(dg, index, model, options, repeat=5):
     final_scores = None
-    dg_test, test_index, table = data.dg_test_index_table()
+    final_predictions = None
     for i in range(repeat):
-        scores = model.evaluate_generator(dg_test, 
-                                          # steps=data.test_size(), 
-                                          max_queue_size=options.max_queue_size, 
-                                          workers=options.workers, 
-                                          use_multiprocessing=options.use_multiprocessing, 
-                                          verbose=0)
+        scores, predictions = evaluate_model(model, dg, 
+                                     max_queue_size=options.max_queue_size, 
+                                     workers=options.workers, 
+                                     use_multiprocessing=options.use_multiprocessing, 
+                                     verbose=0)
         if final_scores is None:
             final_scores = array(scores)
+            final_predictions = array(predictions)
         else:
             final_scores += array(scores)
-    final_scores = final_scores / repeat
+            final_predictions += array(predictions)
 
-    y_test = model.predict_generator(dg_test)[:,0]
-    y_true = table.iloc[test_index][options.y_interest]
-    new_table = DataFrame({"y_true": y_true, "y_test": y_test}, index=test_index)
-    return list(final_scores), new_table
+    final_scores = final_scores / repeat
+    final_predictions = final_predictions / repeat
+
+    y_true = dg.return_labels()[:(len(dg)*dg.batch_size)]
+
+    lbl_predictions = DataFrame({"y_true": y_true, "y_test": final_predictions[:,1]}, index=index)
+                          
+    return list(final_scores), lbl_predictions
+
 def trunc_if_possible(el):
     try:
         return round(el, decimals=2)
     except:
         return el
 
-def fill_table(history, scores, table, parameter_dic, options):
+def fill_table(history, val_scores, scores, table, parameter_dic, validation_number, options):
     train_values = ['loss', 'acc', 'recall', 'precision', 'f1', 'auc_roc']
     val_values = ['val_' + el for el in train_values]
     test_values = ['test_' + el for el in train_values]
@@ -103,16 +107,19 @@ def fill_table(history, scores, table, parameter_dic, options):
     model_values = ['k', 'pooling', 'batch_size', 'size', 
                     'input_depth', 'fold_test', "run_number"]
     vec_train = [trunc_if_possible(history.history[key][-1]) for key in train_values]
-    vec_validation = [trunc_if_possible(history.history[key][-1]) for key in val_values]
+    vec_validation = [trunc_if_possible(el) for el in val_scores]
     vec_test = [trunc_if_possible(el) for el in scores]
     vec_parameters = list(parameter_dic.values())
     vec_model = [options.k, options.pool, 
-                 options.batch_size, options.size, options.input_depth,
+                 options.batch_size, options.size, 
+                 options.input_depth,
                  options.fold_test-1, options.run]
 
     name_columns = train_values + val_values + test_values + parameters_values + model_values
     val_columns = vec_train + vec_validation + vec_test + vec_parameters + vec_model
     table.iloc[options.run][name_columns] = val_columns
+    table.iloc[options.run]["model"] = options.model 
+    table.iloc[options.run]["validation_fold"] = validation_number 
     return table
 
 def main():
@@ -142,16 +149,32 @@ def main():
                 'validation_fold', 'learning_rate', 'weight_decay', 
                 'gaussian_noise', 'k', 'model', 'pooling', 'batch_size', 
                 'size', 'input_depth', 'fold_test', 'run_number']
+
     results_table = DataFrame(index=range(options.repeat*(options.inner_folds)), columns=columns) # Link with the previous table ? Or just result_table ?
     options.run = 0
     for i in range(options.repeat):
         for j in range(options.inner_folds): # Defines which fold will be the validation fold
             parameter_dic = sample_hyperparameters(options, j)
+
             model = load_model(parameter_dic, options)
-            print("begin training", flush=True)
-            model, history = train_model(model, data, parameter_dic, options)
-            scores, predictions = evaluate_test(model, data, options)
-            results_table = fill_table(history, scores, results_table, parameter_dic, options)
+            print("Model loaded")
+
+            dg_train = data.dg_train(j)
+            dg_val = data.dg_val(j)
+            class_weight = data.weights()
+            dg_test, test_index, _ = data.dg_test_index_table()
+            print("Data Loaded")
+
+            print("begin Training", flush=True)
+            model, history = train_model(model, dg_train, dg_val, class_weight, options)
+            print("end Training")
+            print("Evaluating..")
+            scores_val, _ = evaluate_model_generator(dg_val, None, model, 
+                                                     options, repeat=10)
+            scores, predictions = evaluate_model_generator(dg_test, test_index, model, 
+                                                           options, repeat=10)
+            print("Cleaning up")
+            results_table = fill_table(history, scores, scores_val, results_table, parameter_dic, j, options)
 
             K.clear_session()
             del model

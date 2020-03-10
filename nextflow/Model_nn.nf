@@ -21,15 +21,16 @@ mean_tile = file(params.mean)
 
 
 
-inner_fold =  5
+inner_fold =  params.inner_fold
 gaussian_noise = [0]//, 1]
 batch_size = 16
-epochs = 4 // 0
-repeat = 1 // 4
+epochs = 40
+repeat = 4
 params.size = 5000
 size = params.size
 input_depth = 1024
-number_of_folds = 10 
+params.number_of_folds
+number_of_folds = params.number_of_folds 
 pooling_layer = ["avg"]//, "max"]
 
 model_types = ["model_1S_a", "model_1S_b", "model_1S_c", "model_1S_d", "owkin"]

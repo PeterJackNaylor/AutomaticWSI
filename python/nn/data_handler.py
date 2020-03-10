@@ -7,6 +7,7 @@ import dask.array as da
 import os
 import ipdb
 import sys
+import threading
 
 from keras.utils import to_categorical
 from keras.utils import Sequence
@@ -353,14 +354,19 @@ class h5_Sequencer(Sequence):
         if shuffle:
             np.random.shuffle(index_patient)
         self.index_patient = index_patient
-        self.y_onehot = to_categorical(np.array(table.iloc[self.index_patient][y_name]), n_classes)
+        self.y_name = y_name
+        self.table = table
+        self.y_onehot = to_categorical(self.return_labels(), n_classes)
 
         self.n_size = len(self.index_patient)
         self.batch_size = batch_size
         self.size = size
         self.data = data
-        self.table = table
         print("Initializing generator", flush=True)
+        self.lock = threading.Lock()   #Set self.lock
+        
+    def return_labels(self):
+        return np.array(self.table.iloc[self.index_patient][self.y_name])
 
     def __len__(self):
         return self.n_size // self.batch_size
@@ -381,22 +387,18 @@ class h5_Sequencer(Sequence):
             1: return_1[i] is an array containing the `size` encoded tiles of patient `i`
             2: return_2[i] is an array containing the `size` number of labels of patient `i`
         """
-        batch_x = self.index_patient[idx * self.batch_size:(idx + 1) * self.batch_size]
-        batch_y = self.y_onehot[idx * self.batch_size:(idx + 1) * self.batch_size]
 
-        def f(name, table=self.table, size=self.size):
-            data = self.data
-            index = pj_fetch(name, table, size)
-            npy_array = data[index]
-            return npy_array
+        with self.lock:                #Use self.lock
+            batch_x = self.index_patient[idx * self.batch_size:(idx + 1) * self.batch_size]
+            batch_y = self.y_onehot[idx * self.batch_size:(idx + 1) * self.batch_size]
 
-        list_f_x = [f(name) for name in batch_x]
-        batch_x = np.array(list_f_x).astype(float)
-        batch_y = np.array(batch_y)
-        return (batch_x, batch_y)
+            def f(name, table, data, size):
+                index = pj_fetch(name, table, size)
+                npy_array = data[index]
+                return npy_array
 
-
-
-
-
+            list_f_x = [f(name, self.table, self.data, self.size) for name in batch_x]
+            batch_x = np.array(list_f_x).astype(float)
+            batch_y = np.array(batch_y)
+            return (batch_x, batch_y)
 

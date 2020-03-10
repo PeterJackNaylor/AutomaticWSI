@@ -18,6 +18,7 @@ label = file(params.label)
 params.weights = "imagenet"
 weights = params.weights
 
+params.innner_fold = 5
 levels = [0, 1, 2]
 
 process WsiTilingEncoding {
@@ -98,7 +99,7 @@ process RandomForestlMean {
 
    """
    python $compute_rf --label $label \
-                      --inner_fold 5 \
+                      --inner_fold $params.inner_fold \
                       --y_interest $y_interest \
                       --cpu 8
    """
