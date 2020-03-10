@@ -49,12 +49,14 @@ def main():
     analyse_level = args.analyse_level
 
     info, encoded = encode_patient(args.slide, args.xml_file, analyse_level, mask_level, model)
-    name_encoded = os.path.basename(args.slide).replace('.tiff', '.npy')
-    name_mean = os.path.basename(args.slide).replace('.tiff', '_mean.npy')
-    name_visu = os.path.basename(args.slide).replace('.tiff', '_visu.png')
+
+    name, extension = os.path.splitext(os.path.basename(args.slide))
+    name_encoded = name + '.npy'
+    name_mean = name + '_mean.npy'
+    name_visu = name + '_visu.png'
 
 
-    with open(os.path.basename(args.slide).replace('.tiff', "_info.txt"), "wb") as fp:   #Pickling
+    with open(name + "_info.txt", "wb") as fp:   #Pickling
         pickle.dump(info, fp)
     np.save(name_encoded, encoded.astype('float32'))
     np.save(name_mean, encoded.mean(axis=(0)).astype('float32'))
