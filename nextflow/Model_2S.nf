@@ -17,13 +17,10 @@ y_interest = params.y_interest
 params.input = "./outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}/tiling/${r}/mat/"
 encoded_bags = file(params.input + "/*.npy")
 
-inner_fold =  5
+params.inner_fold = 5
+inner_fold =  params.inner_fold
 
-// python files for model 1
-// ploting_cluster = file("python_files/model_1/cluster_plots/ploting_cluster.py")
-// classification_model = file('python_files/model_1/classification/classification_model.py')
 
-// parameters for model 1
 
 nber_ds = 1000
 // subsample_patient

@@ -43,8 +43,10 @@ process Training_nn {
     memory { 30.GB + 5.GB * (task.attempt - 1) }
     // errorStrategy 'retry'
     // maxRetries 6
+    cpus 5
     queue 'gpu-cbio'
     clusterOptions "--gres=gpu:1"
+    scratch true
 
     input:
     file path from input_tiles 
@@ -75,7 +77,8 @@ process Training_nn {
                           --repeat $repeat \
                           --y_interest $params.y_interest \
                           --inner_folds $inner_fold \
-                          --model $model
+                          --model $model \
+                          --workers 5
     """
 }
 

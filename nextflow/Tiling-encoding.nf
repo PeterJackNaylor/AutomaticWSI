@@ -140,8 +140,8 @@ results_PCA .combine(bags_2, by: 0)
 
 process Transform_Tiles {
 
-    publishDir "${output_mat_pca}", overwrite: true
-    memory '60GB'
+    publishDir "${output_mat_pca}", overwrite: true, mode: 'copy'
+    memory '5GB'
 
     input:
     tuple level, file(pca), tile from files_to_transform
@@ -162,7 +162,7 @@ transform_tiles  .groupTuple()
               .set { transform_tiles_per_level }
 
 process ComputePCAGlobalMean {
-    publishDir "${output_pca_mean}", overwrite: true
+    publishDir "${output_pca_mean}", overwrite: true, mode: 'copy'
     memory { 10.GB }
 
     input:
