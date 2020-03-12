@@ -46,7 +46,8 @@ process Training_nn {
     cpus 5
     queue 'gpu-cbio'
     clusterOptions "--gres=gpu:1"
-    scratch true
+    // scratch true
+    stageInMode 'copy'
 
     input:
     file path from input_tiles 

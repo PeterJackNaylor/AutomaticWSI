@@ -57,7 +57,7 @@ do
         nextflow run nextflow/Model_nn.nf -resume -c ~/.nextflow/config -profile mines \
                                            --PROJECT_NAME $PROJECT_NAME --PROJECT_VERSION $PROJECT_VERSION \
                                             --resolution $res --y_interest ${y_interest} \
-                                            --label $LABEL \
+                                            --label $LABEL --size ${size} \
                                             --input_tiles "./outputs/${PROJECT_NAME}_${PROJECT_VERSION}/tiling/${res}/mat_pca/" \
                                             --mean ./outputs/${PROJECT_NAME}_${PROJECT_VERSION}/tiling/${res}/pca_mean/mean.npy \
                                             --inner_fold $INNER_FOLD --number_of_folds $NUMBER_OF_FOLDS

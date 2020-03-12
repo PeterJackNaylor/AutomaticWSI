@@ -69,7 +69,7 @@ def get_options():
     args.max_queue_size = 10
     args.use_multiprocessing = args.multi_processing == 1
     print(args.use_multiprocessing)
-    args.input_depth = 1024 # 512
+    args.input_depth = 256 # 512
 
     args.learning_rate_start = -6
     args.learning_rate_stop = 1

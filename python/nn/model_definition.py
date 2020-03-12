@@ -271,10 +271,10 @@ def model_two_two(n_classes, hidden_btleneck=128, hidden_fcn=512, weight_decay=0
                                  drop_out, input_size, name="bottleneck_1")
 
     x_i = conv_shape_bn_act_drop(x_i, hidden_fcn, weight_decay, drop_out,
-                                 (None, hidden_fcn), "fcn_1_1") 
+                                 (None, hidden_btleneck), "fcn_1_1") 
 
     x_i = conv_shape_bn_act_drop(x_i, hidden_btleneck, weight_decay, drop_out,
-                                 (None, hidden_btleneck), "bottleneck_2")  
+                                 (None, hidden_fcn), "bottleneck_2")  
     if aggr == "avg":
         x_i = GlobalAveragePooling1D()(x_i) 
     elif aggr == "max":
@@ -283,13 +283,15 @@ def model_two_two(n_classes, hidden_btleneck=128, hidden_fcn=512, weight_decay=0
         x_i = WeldonPooling(x_i, k)
     elif aggr == "weldon_conc":
         s_i = conv_shape_bn_act_drop(x_i, 1, weight_decay, 
-                                     drop_out, input_size, name="score",
+                                     drop_out, (None, hidden_btleneck), name="score",
+                                     
                                      activation=activation_middle)
         x_i = WeldonConcPooling(s_i, x_i, k)
         x_i = Flatten()(x_i)
     elif aggr == "conan_plus":
         s_i = conv_shape_bn_act_drop(x_i, 1, weight_decay, 
-                                     drop_out, input_size, name="score",
+                                     drop_out, (None, hidden_btleneck),
+                                     name="score",
                                      activation=activation_middle)
         weldon_conc = WeldonConcPooling(s_i, x_i, k)
         weldon_conc = Flatten()(weldon_conc)
@@ -370,9 +372,9 @@ def model_two_two_skip(n_classes, hidden_btleneck=128, hidden_fcn=512,
     bn_encode_1 = conv_shape_bn_act_drop(x_i, hidden_btleneck, weight_decay, 
                                          drop_out, input_size, name="bottleneck_1")
     x_i = conv_shape_bn_act_drop(bn_encode_1, hidden_fcn, weight_decay, drop_out,
-                                 (None, hidden_fcn), name="fcn_1_1")
+                                 (None, hidden_btleneck), name="fcn_1_1")
     x_i = conv_shape_bn_act_drop(x_i, hidden_btleneck, weight_decay, drop_out,
-                                 (None, hidden_btleneck), name="bottleneck_2", 
+                                 (None, hidden_fcn), name="bottleneck_2", 
                                  activation=activation_middle)
                                  
     x_i = Concatenate(axis=-1)([bn_encode_1, x_i])
@@ -385,7 +387,7 @@ def model_two_two_skip(n_classes, hidden_btleneck=128, hidden_fcn=512,
         x_i = WeldonPooling(x_i, k)
     elif aggr == "weldon_conc":
         s_i = conv_shape_bn_act_drop(x_i, 1, weight_decay, 
-                                     drop_out, input_size, name="score",
+                                     drop_out, (None, 2*hidden_btleneck), name="score",
                                      activation=activation_middle)
         x_i = WeldonConcPooling(s_i, x_i, k)
         x_i = Flatten()(x_i)
