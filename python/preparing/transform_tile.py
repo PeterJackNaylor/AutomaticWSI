@@ -39,7 +39,7 @@ if __name__=="__main__":
     args = parser.parse_args()
     ipca = load(args.pca)
     wsi = np.load(args.path)
-    wsi_transformed = transform_pca(wsi, ipca)
+    wsi_transformed = ipca.transform(wsi)
     name = os.path.basename(args.path)
     np.save(name, wsi_transformed)
 
