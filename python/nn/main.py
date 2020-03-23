@@ -63,7 +63,7 @@ def train_model(model, dg_train, dg_val, class_weight, options):
                                   max_queue_size=options.max_queue_size, workers=options.workers, 
                                   use_multiprocessing=options.use_multiprocessing)#,
                                   #verbose=2)
-    model.save('my_model_run_number_{}.h5'.format(options.run))
+    # model.save('my_model_run_number_{}.h5'.format(options.run))
 
     return model, history
 
@@ -95,20 +95,20 @@ def evaluate_model_generator(dg, index, model, options, repeat=5):
 
 def trunc_if_possible(el):
     try:
-        return round(el, decimals=2)
+        return round(el, decimals=4)
     except:
         return el
 
-def fill_table(history, val_scores, scores, table, parameter_dic, validation_number, options):
+def fill_table(train_scores, val_scores, test_scores, table, parameter_dic, validation_number, options):
     train_values = ['loss', 'acc', 'recall', 'precision', 'f1', 'auc_roc']
     val_values = ['val_' + el for el in train_values]
     test_values = ['test_' + el for el in train_values]
     parameters_values = list(parameter_dic.keys())
     model_values = ['k', 'pooling', 'batch_size', 'size', 
                     'input_depth', 'fold_test', "run_number"]
-    vec_train = [trunc_if_possible(history.history[key][-1]) for key in train_values]
+    vec_train = [trunc_if_possible(el) for el in train_scores]
     vec_validation = [trunc_if_possible(el) for el in val_scores]
-    vec_test = [trunc_if_possible(el) for el in scores]
+    vec_test = [trunc_if_possible(el) for el in test_scores]
     vec_parameters = list(parameter_dic.values())
     vec_model = [options.k, options.pool, 
                  options.batch_size, options.size, 
@@ -134,7 +134,7 @@ def main():
     fold_test = options.fold_test - 1 
     table_name = options.table
     batch_size = options.batch_size
-    
+
 
     ### data business
     data = data_handler(path, fold_test, 
@@ -169,12 +169,14 @@ def main():
             model, history = train_model(model, dg_train, dg_val, class_weight, options)
             print("end Training")
             print("Evaluating..")
+            scores_train, _ = evaluate_model_generator(dg_train, None, model, 
+                                                     options, repeat=10)
             scores_val, _ = evaluate_model_generator(dg_val, None, model, 
                                                      options, repeat=10)
-            scores, predictions = evaluate_model_generator(dg_test, test_index, model, 
+            scores_test, predictions = evaluate_model_generator(dg_test, test_index, model, 
                                                            options, repeat=10)
             print("Cleaning up")
-            results_table = fill_table(history, scores, scores_val, results_table, parameter_dic, j, options)
+            results_table = fill_table(scores_train, scores_val, scores_test, results_table, parameter_dic, j, options)
 
             K.clear_session()
             del model

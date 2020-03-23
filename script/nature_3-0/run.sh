@@ -4,8 +4,8 @@ PROJECT_VERSION=3-0
 TIFF_LOCATION=../Data/Biopsy_Nature_3-0/
 TISSUE_BOUNDARIES=../Data/Biopsy_Nature_3-0/tissue_segmentation
 INNER_FOLD=5
-NUMBER_OF_FOLDS=10
-LABEL=/mnt/data3/pnaylor/AutomaticWSI/outputs/${PROJECT_NAME}_${PROJECT_VERSION}/label.csv
+NUMBER_OF_FOLDS=5
+LABEL=/mnt/data3/pnaylor/AutomaticWSI/outputs/label_${NUMBER_OF_FOLDS}.csv
 
 ## tiling
 # nextflow run nextflow/Tiling-encoding.nf -resume -c ~/.nextflow/config -profile mines \
@@ -36,11 +36,11 @@ LABEL=/mnt/data3/pnaylor/AutomaticWSI/outputs/${PROJECT_NAME}_${PROJECT_VERSION}
 
 for y_interest in Residual Prognostic
 do
-    for res in 1 2 #0
+    for res in 0 1 2 #0
     do
         if [ $res -eq 0 ]
             then
-                size=5000
+                size=4000
             else
                 if [ $res -eq 1 ]
                     then

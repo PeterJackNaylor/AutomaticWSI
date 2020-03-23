@@ -28,13 +28,11 @@ epochs = 40
 repeat = 4
 params.size = 5000
 size = params.size
-input_depth = 1024
 params.number_of_folds
 number_of_folds = params.number_of_folds 
-pooling_layer = ["avg"]//, "max"]
 
-model_types = ["model_1S_a", "model_1S_b", "model_1S_c", "model_1S_d", "owkin"]
-
+// model_types = ["model_1S_a", "model_1S_b", "model_1S_c", "model_1S_d", "owkin"]
+model_types = ["model_1S_a", "model_1S_b", "model_1S_c", "model_1S_d", "owkin", "weldon_plus_a", "weldon_plus_b", "weldon_plus_c", "conan_a", "conan_b", "conan_c"]
 //mean_file = mean_file .view()
 
 process Training_nn {
@@ -58,7 +56,7 @@ process Training_nn {
 
     output:
     tuple val("${fold}"), file("*.csv") into results_weldon
-    file("*.h5")
+    // file("*.h5")
 
     script:
     python_script = file("./python/nn/main.py")

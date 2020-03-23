@@ -38,7 +38,7 @@ def get_options():
                         metavar="str", type=int, default=0,
                         help='if to apply gaussian noise to the input')
     parser.add_argument('--pool',
-                        metavar="str", type=str, default='max',
+                        metavar="str", type=str, default='avg',
                         help='if to apply max or average pooling')
     parser.add_argument('--repeat', required=True,
                         metavar="str", type=int,

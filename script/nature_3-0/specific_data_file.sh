@@ -1,5 +1,5 @@
 
-NUMBER_OF_FOLDS=10
+NUMBER_OF_FOLDS=5
 
 # Not to run, as this was run with CellularHeatmaps to generate the labels.
 python python/label_standardise/substrat_label.py --input_table ../Data/Biopsy_csv/rcb_substrat_updated_with_gui_and_with_present_cluster.csv \

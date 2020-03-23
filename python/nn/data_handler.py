@@ -272,9 +272,14 @@ class data_handler:
         h5_Sequencer from the Keras package,
             testing data generator for a Keras neural network module.
         """
-        return h5_Sequencer(self.test_index, self.table, self.data, 
-                            1, self.size, shuffle=False,
+        return h5_Sequencer(self.test_index, 
+                            self.table, 
+                            self.data, 
+                            1, 
+                            self.size, 
+                            shuffle=False,
                             y_name=self.y_interest)
+
     def dg_test_index_table(self):
         """
         Returns a h5_sequencer following the object template given

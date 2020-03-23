@@ -31,7 +31,9 @@ process WsiTilingEncoding {
     clusterOptions "--gres=gpu:1"
     maxForks 16
     memory '20GB'
-    
+    errorStrategy 'retry'
+    maxRetries 5
+
     input:
     file slide from tiff_files
     each level from levels
