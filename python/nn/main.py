@@ -1,7 +1,7 @@
 from numpy import array, random, round
 from pandas import DataFrame
 from options_py import get_options
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 import sys
 from data_handler import data_handler
 from model_definition import load_model
@@ -51,8 +51,16 @@ def call_backs(options):
                                    factor=0.1,
                                    patience=5,
                                    mode='auto')  
+    early_stopping = EarlyStopping(monitor='val_loss', 
+                                   min_delta=0, 
+                                   patience=20, 
+                                   verbose=0, 
+                                   mode='auto', 
+                                   baseline=None,    
+                                   restore_best_weights=True)
+    callbacks = [early_stopping]
     # return [lr_reducer]
-    return []
+    return [early_stopping]
 
 def train_model(model, dg_train, dg_val, class_weight, options):
     callbacks_list = call_backs(options)

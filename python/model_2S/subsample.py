@@ -15,13 +15,16 @@ def get_options():
     parser.add_argument('--nber_ds', required=True,
                         metavar="str", type=int,
                         help='number of patches per tissue')
+    parser.add_argument('--input_depth', required=True,
+                        metavar="str", type=int,
+                        help='size of input vector to concatenate')
     parser.add_argument('--npy', required=True,
                         metavar="str", type=str,
                         help='npy file for tissue')
     args = parser.parse_args()
     return args 
 
-def load(path):
+def load(path, input_depth=256):
     """
     Loads a tissue bag.
     Parameters
@@ -32,7 +35,7 @@ def load(path):
     -------
     A numpy array where each line is en encoded bag of the tissue
     """
-    mat = np.load(path)
+    mat = np.load(path)[:,:input_depth]
     return mat
 
 def subsample(npy, n, method="uniform", weight=False):
@@ -110,7 +113,7 @@ def main():
     
     options = get_options()
     print('Loading data, might be sloww...')
-    npy_array = load(options.npy)
+    npy_array = load(options.npy, options.input_depth)
     print('See I managed to load it :D \n Starting subsampling wish me luck! ;-)')
     weight = False
 

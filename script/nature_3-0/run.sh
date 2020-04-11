@@ -28,19 +28,19 @@ LABEL=/mnt/data3/pnaylor/AutomaticWSI/outputs/label_${NUMBER_OF_FOLDS}.csv
 #                                            --PROJECT_NAME $PROJECT_NAME --PROJECT_VERSION $PROJECT_VERSION \
 #                                             --resolution $res --y_interest ${y_interest} \
 #                                             --label $LABEL --inner_fold $INNER_FOLD \
-#                                             --input ./outputs/${PROJECT_NAME}_${PROJECT_VERSION}/tiling/${res}/mat_pca
+#                                             --input_tiles "./outputs/${PROJECT_NAME}_${PROJECT_VERSION}/tiling/${res}/mat_pca/"
 #     done
 # done
 
 ## Model 1S, owkin, conan and conan++
 
-for y_interest in Residual Prognostic
+for y_interest in Prognostic Residual # 
 do
-    for res in 0 1 2 #0
+    for res in 0 1 2
     do
         if [ $res -eq 0 ]
             then
-                size=4000
+                size=5000
             else
                 if [ $res -eq 1 ]
                     then

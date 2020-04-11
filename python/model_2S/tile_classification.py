@@ -42,6 +42,9 @@ def get_options():
     parser.add_argument('--cpu', required=False, default=1,
                         metavar="str", type=int,
                         help='number of available cpu') 
+    parser.add_argument('--input_depth', required=True,
+                        metavar="str", type=int,
+                        help='size of input vector to concatenate')
     args = parser.parse_args()
     return args
 
@@ -190,7 +193,7 @@ class umap_model:
         sns.pairplot(to_plot, hue="hue")
         plt.savefig("test" + ".png")
 
-def create_features_for_all_tissue(tissues, func, nclass):
+def create_features_for_all_tissue(tissues, func, nclass, input_depth=256):
     """
     Projects every tiles into each class and computes
     the average of vector Z_i = mean(one_hot_encoding_class_j) 
@@ -212,7 +215,7 @@ def create_features_for_all_tissue(tissues, func, nclass):
     z_i = []
     order = []
     for tissue in tissues:
-        mat = np.load(tissue)
+        mat = np.load(tissue)[:,:input_depth]
         tile_assigned = func(mat)
         onehot_yji = one_hot(tile_assigned, nclass)
         zi = np.mean(onehot_yji, axis=0)
@@ -244,7 +247,6 @@ def main():
 
     #load downsampled version of patients 
     all_tissue_ds = load_all_patients_ds(options.path)
-
     # create tile clusters
     mod, pred_function = tile_cluster(all_tissue_ds, options.n_c, 
                                       method=options.clustering_method,
@@ -255,7 +257,7 @@ def main():
     # class assignement followed by taking the average.
     all_tissue = [f for f in glob(os.path.join(options.path,'*.npy')) if "_ds" not in f]
     tissue_profiles, order = create_features_for_all_tissue(all_tissue, pred_function,
-                                                            options.n_c)
+                                                            options.n_c, options.input_depth)
     # saving
     np.save("tissue_zi.npy", tissue_profiles)
 

@@ -14,9 +14,9 @@ params.y_interest = "Residual"
 y_interest = params.y_interest
 
 // raw input
-params.input = "./outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}/tiling/${r}/mat/"
-encoded_bags = file(params.input + "/*.npy")
-
+params.input_tiles = "./outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}/tiling/${r}/mat/"
+encoded_bags = file(params.input_tiles + "/*.npy")
+input_depth = 256
 params.inner_fold = 5
 inner_fold =  params.inner_fold
 
@@ -54,7 +54,8 @@ process SubsamplingTissue {
     """
     python $py_sub --npy $npy \
                    --method $method \
-                   --nber_ds $nber_ds
+                   --nber_ds $nber_ds \
+                   --input_depth $input_depth
     """ 
 }
 
@@ -65,9 +66,14 @@ process TileClassification {
     publishDir "${output_process_mod}", pattern: "models", overwrite: true
     publishDir "${output_process_zi}", pattern: "*.npy", overwrite: true
     publishDir "${output_process_zi}", pattern: "order_zi.pickle", overwrite: true
+    
+    stageInMode 'copy'
 
-    memory '100GB'
-    // cpus 8
+    memory '120GB'
+    cpus 8
+    errorStrategy 'retry'
+    maxRetries 10
+    // maxForks 1
 
     input:
     set method, file(bag_ds), file(bag) from ds_encoded_bag_grouped
@@ -88,7 +94,8 @@ process TileClassification {
                                    --n_c $k \
                                    --clustering_method $clus \
                                    --cpu 8 \
-                                   --seed 42
+                                   --seed 42 \
+                                   --input_depth $input_depth
     """
 }
 

@@ -1,6 +1,6 @@
 
 var=auc
-FILE=/mnt/data3/pnaylor/AutomaticWSI/python/nn/get_results.py
+FILE=/mnt/data3/pnaylor/AutomaticWSI/python/nn/results/get_results.py
 
 for res in 0 1 2
 do 

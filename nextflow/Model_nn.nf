@@ -24,7 +24,7 @@ mean_tile = file(params.mean)
 inner_fold =  params.inner_fold
 gaussian_noise = [0]//, 1]
 batch_size = 16
-epochs = 40
+epochs = 120
 repeat = 4
 params.size = 5000
 size = params.size
@@ -44,8 +44,8 @@ process Training_nn {
     cpus 5
     queue 'gpu-cbio'
     clusterOptions "--gres=gpu:1"
-    // scratch true
-    stageInMode 'copy'
+    scratch true
+    // stageInMode 'copy'
 
     input:
     file path from input_tiles 
@@ -66,6 +66,7 @@ process Training_nn {
     /* Mettre --table --repeat --class_type en valeur par défaut ? */
     """
     module load cuda10.0
+    
     python $python_script --mean_name $mean \
                           --path "${path}/*.npy" \
                           --table $lab \
