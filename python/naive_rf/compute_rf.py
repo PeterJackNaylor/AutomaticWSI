@@ -118,6 +118,7 @@ def load_custom_csv(path):
 def load(path_fold_label):
     x_feat = load_custom_table()
     fold_pat = load_custom_csv(path_fold_label)
+    fold_pat["Biopsy"] = fold_pat["Biopsy"].astype(str)
     df_data = x_feat.join(fold_pat.set_index('Biopsy'))
 
     # df_data = df_data.dropna() because of substrat merging with fabien,
@@ -127,7 +128,6 @@ def load(path_fold_label):
 
 def model_config(df_data, y_interest, cv, cpu):
     result = df_data.copy()
-
     for y_fold in range(int(df_data['fold'].max() + 1)):
         df_tr = df_data[df_data['fold'] != y_fold]
         df_te = df_data[df_data['fold'] == y_fold]

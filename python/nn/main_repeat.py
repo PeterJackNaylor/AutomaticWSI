@@ -38,12 +38,12 @@ def sample_hyperparameters(options, validation_fold):
         dictionary containing all the values cited above. Keys are the name written in the description.
     """
     dic = {}
-    dic["learning_rate"] = log_sample(options.learning_rate_start, options.learning_rate_stop)
-    dic["weight_decay"] = log_sample(options.weight_decay_start, options.weight_decay_stop)
-    dic["gaussian_noise"] = random.uniform() if options.gaussian_noise else 0
-    dic["drop_out"] = random.uniform(low=0.0, high=0.5)
-    dic["hidden_fcn"] = random.choice(options.hidden_fcn_list)
-    dic["hidden_btleneck"] = random.choice(options.hidden_btleneck_list)
+    dic["learning_rate"] = 0.04
+    dic["weight_decay"] = 0.0007
+    dic["gaussian_noise"] = 0
+    dic["drop_out"] = 0.3006
+    dic["hidden_fcn"] = 128
+    dic["hidden_btleneck"] = 32
     return dic
 
 def call_backs(options):
@@ -60,7 +60,7 @@ def call_backs(options):
                                    restore_best_weights=True)
     callbacks = [early_stopping]
     # return [lr_reducer]
-    return callbacks
+    return [early_stopping]
 
 def train_model(model, dg_train, dg_val, class_weight, options):
     callbacks_list = call_backs(options)
@@ -161,8 +161,8 @@ def main():
     results_table = DataFrame(index=range(options.repeat*(options.inner_folds)), columns=columns) # Link with the previous table ? Or just result_table ?
     options.run = 0
     for i in range(options.repeat):
-        parameter_dic = sample_hyperparameters(options, 0)
         for j in range(options.inner_folds): # Defines which fold will be the validation fold
+            parameter_dic = sample_hyperparameters(options, j)
 
             model = load_model(parameter_dic, options)
             print("Model loaded")
@@ -189,7 +189,7 @@ def main():
             K.clear_session()
             del model
             results_table.to_csv(options.output_name, index=False)
-            predictions.to_csv("predictions_run_{}__fold_test_{}.csv".format(options.run, j, options.fold_test))
+            predictions.to_csv("predictions_run_{}_fold_test_{}.csv".format(options.run, options.fold_test))
             options.run += 1
 
 

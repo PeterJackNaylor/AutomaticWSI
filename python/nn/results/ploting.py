@@ -18,38 +18,45 @@ def get_options():
     args = parser.parse_args()
     return args
 def plot(table, name):
-    fig, ax = plt.subplots(figsize=(20,12))
+    
     width = 0.25         # the width of the bars
     inch = 1
-    models =  ["model_1S_a", "model_1S_b", "model_1S_c", "model_1S_d", "owkin", "weldon_plus_a", "weldon_plus_b", "weldon_plus_c", "conan_a", "conan_b", "conan_c"]
+    models =  ["model_1S_a", "model_1S_b", "model_1S_c", "model_1S_d", "owkin", "weldon_plus_a", "weldon_plus_b", "weldon_plus_c", "weldon_plus_d", "conan_a", "conan_b", "conan_c", "conan_d"]
     N = len(models)
 
     ind = np.arange(N)    # the x locations for the groups
+    variable_names = ['test_acc', 'test_f1', 'test_auc_roc']
+    for var in variable_names:
+        fig, ax = plt.subplots(figsize=(20, 12))
+        for res in [0,1,2]:
+            means = []
+            err = []
+            for model in models:
+                try:
+                    mean = table.ix[(table['model'] == model) & (table['res'] == str(res)) & (table['type'] == 'mean'), var].values[0]
+                    std_err = table.ix[(table['model'] == model) & (table['res'] == str(res)) & (table['type'] == 'Std.Dev'), var].values[0]
+                except:
+                    mean = 0
+                    std_err = 0
+                means.append(mean)
+                err.append(std_err)
+            ax.bar(ind + res * width, means, width, bottom=0, yerr=err, label=str(res))
 
-    for res in [0,1,2]:
-        means = []
-        err = []
-        for model in models:
-            try:
-                mean = table.ix[(table['model'] == model) & (table['res'] == res) & (table['type'] == 'mean'), 'test_auc_roc'].values[0]
-                std_err = table.ix[(table['model'] == model) & (table['res'] == res) & (table['type'] == 'Std.Dev'), 'test_auc_roc'].values[0]
-            except:
-                mean = 0
-                std_err = 0
-            means.append(mean)
-            err.append(std_err)
-        ax.bar(ind + res * width, means, width, bottom=0, yerr=err, label=str(res))
 
 
-
-    ax.set_title('Scores by resolution and model')
-    ax.set_xticks(ind + width / 2)
-    ax.set_xticklabels(tuple(models))
-    ax.set_ylim((0,1))
-    ax.legend()
-    ax.yaxis.set_units(inch)
-    ax.autoscale_view()
-    plt.savefig(name)
+        ax.set_title('Scores by resolution and model')
+        ax.set_xticks(ind + width / 2)
+        ax.set_xticklabels(tuple(models))
+        if var == "test_f1":
+            base_y = 0
+        else:
+            base_y = 0.5    
+        ax.set_ylim((base_y,1))
+        ax.legend()
+        ax.yaxis.set_units(inch)
+        ax.autoscale_view()
+        plt.savefig(name.split('.')[0] + "__{}.png".format(var))
+        plt.close()
     # plt.show()
     
 

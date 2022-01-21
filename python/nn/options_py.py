@@ -58,6 +58,9 @@ def get_options():
     parser.add_argument('--workers', default=5, required=False,
                         metavar="int", type=int,
                         help='number of workers')
+    parser.add_argument('--repeat_num', default=0, required=False,
+                        metavar="int", type=int,
+                        help='number for the saved file name')
     args = parser.parse_args()
 
     if args.gaussian_noise == 0:
@@ -72,19 +75,19 @@ def get_options():
     args.input_depth = 256 # 512
 
     args.learning_rate_start = -6
-    args.learning_rate_stop = 1
+    args.learning_rate_stop = -3
     args.weight_decay_start = -4
-    args.weight_decay_stop = 1
+    args.weight_decay_stop = -1
 
     args.activation_middle = "tanh"
-    args.hidden_fcn_list = [32, 64, 128, 256]
-    args.hidden_btleneck_list = [4, 8, 32, 64]
+    args.hidden_fcn_list = [64, 128]
+    args.hidden_btleneck_list = [8, 32, 64]
 
     args.pooling_layer = args.pool
     args.k = 5
     args.n_scores = 5
     args.concatenate = False
-    args.output_name = "neural_networks_model_fold_number_{}.csv".format(args.fold_test)
+    args.output_name = "neural_networks_model_fold_number_{}_rep_{}.csv".format(args.fold_test, args.repeat_num)
 
 
     return args

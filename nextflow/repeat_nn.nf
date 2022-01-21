@@ -25,94 +25,59 @@ inner_fold =  params.inner_fold
 gaussian_noise = [0]//, 1]
 batch_size = 16
 epochs = 120
-repeat = 4
-REPEATS = 10
+repeat = 20
 params.size = 5000
 size = params.size
-
+params.number_of_folds
 number_of_folds = params.number_of_folds 
 
 // model_types = ["model_1S_a", "model_1S_b", "model_1S_c", "model_1S_d", "owkin"]
-model_types = ["model_1S_a", "model_1S_b", "model_1S_c", "model_1S_d", "owkin", "weldon_plus_a", "weldon_plus_b", "weldon_plus_c", "weldon_plus_d", "conan_a", "conan_b", "conan_c", "conan_d"]
+model_types = ["model_1S_a"]
 //mean_file = mean_file .view()
 
 process Training_nn {
     publishDir "${output_model_folder}", pattern: "*.h5", overwrite: true
     publishDir "${output_results_folder}", pattern: "*.csv", overwrite: true
     memory { 30.GB + 5.GB * (task.attempt - 1) }
-    errorStrategy 'retry'
-    maxRetries 6
-    time '6h'
+    // errorStrategy 'retry'
+    // maxRetries 6
     cpus 5
     queue 'gpu-cbio'
     clusterOptions "--gres=gpu:1"
-    // scratch true
+    scratch true
     // stageInMode 'copy'
 
     input:
     file path from input_tiles 
     file mean from mean_tile
     file lab from label
-    each fold from 1..number_of_folds
     each model from model_types
-    each _ from 1..REPEATS
 
     output:
-    set val("${model}"), file("neural_networks_model*.csv") into results_nn
+    tuple val("${fold}"), file("*.csv") into results_weldon
     // file("*.h5")
 
     script:
-    python_script = file("./python/nn/main.py")
-    output_model_folder = file("${output_folder}/${model}/${params.y_interest}/models/")
-    output_results_folder = file("${output_folder}/${model}/${params.y_interest}/results/")
+    python_script = file("./python/nn/main_repeat.py")
+    output_model_folder = file("REPEAT/${output_folder}/${model}/${params.y_interest}/models/")
+    output_results_folder = file("REPEAT/${output_folder}/${model}/${params.y_interest}/results/")
 
     /* Mettre --table --repeat --class_type en valeur par défaut ? */
     """
     module load cuda10.0
-
+    
     python $python_script --mean_name $mean \
                           --path "${path}/*.npy" \
                           --table $lab \
                           --batch_size $batch_size \
                           --epochs $epochs \
                           --size $size \
-                          --fold_test $fold \
+                          --fold_test 1 \
                           --repeat $repeat \
                           --y_interest $params.y_interest \
                           --inner_folds $inner_fold \
-                          --model $model  \
-                          --workers 5 \
-                          --repeat_num $_
-        
-
+                          --model $model \
+                          --workers 5
     """
 }
 
-
-predictions_regrouped = results_nn  .groupTuple() 
-                                    .map { it -> [it[0], it[1].flatten()] }
-                                    .set{ regrouped_predictions }
-
-     
-
-process Grouping_results {
-    publishDir "${output_folder}",  overwrite: true
-    publishDir "${output_best}",  overwrite: true
-
-
-    input:
-    set model, file(_) from regrouped_predictions
-
-    output:
-    file("${name}_all.csv")
-    file("${name}_best.csv") into best
-
-    script:
-    python_file = file("python/nn/results/get_results.py")
-    name = "${model}_for_${params.y_interest}_at_res_${r}__"
-    output_best = file("${output_folder}/res_aggr/${params.y_interest}/")
-    output_folder = file("${output_folder}/${model}/${params.y_interest}/results/")
-    """
-    python $python_file --path . --name $name --variable_to_report auc
-    """
-}

@@ -64,3 +64,12 @@ do
     done
 done
 
+
+
+# nextflow run nextflow/repeat_nn.nf -resume -c ~/.nextflow/config -profile mines \
+#                                            --PROJECT_NAME $PROJECT_NAME --PROJECT_VERSION $PROJECT_VERSION \
+#                                             --resolution 0 --y_interest Prognostic \
+#                                             --label $LABEL --size 4000 \
+#                                             --input_tiles "./outputs/${PROJECT_NAME}_${PROJECT_VERSION}/tiling/0/mat_pca/" \
+#                                             --mean ./outputs/${PROJECT_NAME}_${PROJECT_VERSION}/tiling/0/pca_mean/mean.npy \
+#                                             --inner_fold $INNER_FOLD --number_of_folds $NUMBER_OF_FOLDS

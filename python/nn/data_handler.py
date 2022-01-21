@@ -113,7 +113,9 @@ def set_table(table, fold_test, inner_number_folds, index_table, y_name):
     stratified_variable = train_table[y_name].round(0)
     skf = StratifiedKFold(n_splits=inner_number_folds, shuffle=True) # Assures that relative class frequency is preserve in each folds.
     obj = skf.split(train_table.index, stratified_variable)
-    index_folds = [(train_index, val_index) for train_index, val_index in obj]
+    # index_folds = [(train_index, val_index) for train_index, val_index in obj]
+    index_folds = [(np.array(train_table.index[train_index]), np.array(train_table.index[val_index])) for train_index, val_index in obj]
+    # import pdb; pdb.set_trace()
     return table, index_folds, test_index
 
 
@@ -228,7 +230,6 @@ class data_handler:
         h5_Sequencer from the Keras package,
             training data generator for a Keras neural network module.
         """
-        
         train_index = self.obj[fold][0] 
         return h5_Sequencer(train_index, 
                             self.table, 
@@ -252,7 +253,6 @@ class data_handler:
         h5_Sequencer from the Keras package,
             validation data generator for a Keras neural network module.
         """
-        
         val_index = self.obj[fold][1]
         return h5_Sequencer(val_index, 
                             self.table, 
