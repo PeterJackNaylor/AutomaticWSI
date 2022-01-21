@@ -11,7 +11,7 @@ input_folder = "./outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}"
 output_folder = "${input_folder}/Model_NN_R${r}"
 
 // label
-params.label = "/mnt/data3/pnaylor/CellularHeatmaps/outputs/label.csv"
+params.label = "/path/to/label/label.csv"
 label = file(params.label)
 
 params.input_tiles = "${input_folder}/tiling/${r}/mat/"
