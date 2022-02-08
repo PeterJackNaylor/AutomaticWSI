@@ -411,8 +411,8 @@ class h5_Sequencer(Sequence):
 def fill_table(row, ar=None, y=None):
     start = int(row["start"])
     end = int(row["end"])
-    ind = row["Name"]
-    ar[start:end] = y[ind]
+    ind = row.name
+    ar[start:end] = np.tile(y[ind], (end-start,1))
 
 class h5_Sequencer_HL(Sequence):
 
