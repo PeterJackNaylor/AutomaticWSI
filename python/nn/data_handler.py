@@ -185,7 +185,7 @@ def file_is_in_labels(files, table):
     filtered_files = [x[1] for x in files if x[0] in labels_name]
     return filtered_files
 
- 
+
 class data_handler:
     """Instantiate a data_handler Class. Creates iterators with the chosen characteristics with the functions
     dg_train, dg_val, dg_test.
@@ -429,10 +429,25 @@ class h5_Sequencer_HL(Sequence):
         self.batch_size = batch_size
         self.size = size
         self.data = data
-        self.y_onehot_new = np.zeros(shape=(self.data.shape[0], self.y_onehot.shape[1]))
         print("check patient index")
-        self.table.apply(lambda row: fill_table(row, ar=self.y_onehot_new, y=self.y_onehot), axis=1)
+        new_x = []
+        new_y = []
+        for i, pat in enumerate(list(index_patient)):
+            start = self.table.loc[pat, "start"]
+            end = self.table.loc[pat, "end"]
+            new_x.append(self.data[start:end])
+            new_y.append(np.tile(self.y_onehot[i], (end-start,1)))
         import pdb; pdb.set_trace()
+
+        self.new_x = np.stack(new_x)
+        self.new_y = np.stack(new_y)
+        self.n_size = self.new_x.shape
+        if shuffle:
+            idx = np.array(range(self.n_size))
+            np.random.shuffle(idx)
+            self.new_x = self.new_x[idx]
+            self.new_y = self.new_y[idx]
+
         print("Initializing generator", flush=True)
         self.lock = threading.Lock()   #Set self.lock
         
@@ -460,17 +475,8 @@ class h5_Sequencer_HL(Sequence):
         """
 
         with self.lock:                #Use self.lock
-            batch_x = self.index_patient[idx * self.batch_size:(idx + 1) * self.batch_size]
-            batch_y = self.y_onehot[idx * self.batch_size:(idx + 1) * self.batch_size]
-
-            def f(name, table, data, size):
-                index = pj_fetch(name, table, size)
-                npy_array = data[index]
-                return npy_array
-
-            list_f_x = [f(name, self.table, self.data, self.size) for name in batch_x]
-            batch_x = np.array(list_f_x).astype(float)
-            batch_y = np.array(batch_y)
+            batch_x = self.new_x[idx * self.batch_size:(idx + 1) * self.batch_size]
+            batch_y = self.new_y[idx * self.batch_size:(idx + 1) * self.batch_size]
             return (batch_x, batch_y)
 
 class data_handler_hardlabel(data_handler):
