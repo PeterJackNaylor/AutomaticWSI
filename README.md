@@ -1,10 +1,8 @@
-# README
-
 This repository contains the code necessary to reproduce the work presented in "Neural network for the prediction of treatment response in TNBC" by P.Naylor, T.Lazard, G.Bataillon, M.Laé, A.Vincent-Salomon, A.Hamy, F.Reyal and T.Walter submitted in [....].
 
 # Code structure
 
-The code is based on nextflow which allows to submit process to a cluster scheduler in a automatic way. In particular, nextflow is smart scheduler which knows when to relaunch jobs and when to cache them.
+The code is based on nextflow which allows to submit processes to a cluster scheduler in a automatic way. In particular, nextflow is smart scheduler which knows when to relaunch jobs and when to cache them.
 
 Please check the Makefile in order to understand where and how each code is used.
 
