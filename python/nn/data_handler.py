@@ -423,7 +423,7 @@ class h5_Sequencer_HL(Sequence):
         self.index_patient = index_patient
         self.y_name = y_name
         self.table = table
-        self.y_onehot = to_categorical(self.return_labels(), n_classes)
+        self.y_onehot = to_categorical(np.array(self.table.iloc[self.index_patient][self.y_name]), n_classes)
 
         self.n_size = len(self.index_patient)
         self.batch_size = batch_size
