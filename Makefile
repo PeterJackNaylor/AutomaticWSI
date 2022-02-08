@@ -7,7 +7,7 @@ DATA_PATH = ../Data/TNBC_biopsy/ # /path/to/tiff
 TISSUE_SEGMENTATION = ../Data/TNBC_biopsy/tissue_segmentation # /path/to/wsi/tissue/masks
 RESOLUTIONS = 0 1 2 # Resolution to investigate
 Y_TARGETS = Residual Prognostic # Name of y targets that can be found in LABEL_FILE
-
+PROJECT_VERSION = $(PROJECT_NAME)_$(VERSION)
 
 $(LABEL_FILE):
 	CSV_DATA1 = ../Data/Biopsy_csv/rcb_substrat.csv
@@ -55,34 +55,7 @@ model_2S: $(LABEL_FILE)
 	done
 
 hard_label:
-	for y_interest in $(Y_TARGETS)
-	do
-		for res in $(RESOLUTIONS)
-		do
-			if [ $res -eq 0 ]
-				then
-					size=5000
-				else
-					if [ $res -eq 1 ]
-						then
-							size=3000
-						else
-							size=1000
-					fi
-			fi
-			echo "####################################################################"
-			echo 
-			echo "########### Doing ${y_interest} at ${res} input size $size ###############"
-			echo 
-			echo "####################################################################"
-			nextflow run nextflow/Hard_labelling.nf -resume -c ~/.nextflow/config -profile $(PROFILE) \
-											--PROJECT_NAME $(PROJECT_NAME) --PROJECT_VERSION $(VERSION) \
-											--resolution $res --y_interest ${y_interest} \
-											--label $(LABEL_FILE) \
-											--input_tiles ./outputs/$(PROJECT_NAME)_$(PROJECT_VERSION)/tiling/${res}/mat_pca/ \
-											--mean ./outputs/$(PROJECT_NAME)_$(PROJECT_VERSION)/tiling/${res}/pca_mean/mean.npy
-		done
-	done
+	bash sbash_scripts/hard_label.sh "$(Y_TARGETS)" "$(RESOLUTIONS)" $(PROFILE) $(PROJECT_VERSION) $(LABEL_FILE)
 
 model_1S: $(LABEL_FILE)
 	for y_interest in $(Y_TARGETS)
