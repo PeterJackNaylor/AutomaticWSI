@@ -124,6 +124,7 @@ def fill_table(train_scores, val_scores, test_scores, table, parameter_dic, vali
 
     name_columns = train_values + val_values + test_values + parameters_values + model_values
     val_columns = vec_train + vec_validation + vec_test + vec_parameters + vec_model
+    import pdb; pdb.set_trace()
     table.iloc[options.run][name_columns] = val_columns
     table.iloc[options.run]["model"] = options.model 
     table.iloc[options.run]["validation_fold"] = validation_number 
