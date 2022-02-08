@@ -452,7 +452,7 @@ class h5_Sequencer_HL(Sequence):
         self.lock = threading.Lock()   #Set self.lock
         
     def return_labels(self):
-        return np.array(self.table.iloc[self.index_patient][self.y_name])
+        return self.new_y
 
     def __len__(self):
         return self.n_size // self.batch_size
