@@ -95,7 +95,7 @@ def evaluate_model_generator(dg, index, model, options, repeat=1):
     final_predictions = final_predictions / repeat
 
     y_true = dg.return_labels()[:(len(dg)*dg.batch_size)].argmax(axis=1)
-    import pdb; pdb.set_trace()
+
     lbl_predictions = DataFrame({"y_true": y_true, "y_test": final_predictions[:,1]}, index=index)
 
     return list(final_scores), lbl_predictions
@@ -117,14 +117,13 @@ def fill_table(train_scores, val_scores, test_scores, table, parameter_dic, vali
     vec_validation = [trunc_if_possible(el) for el in val_scores]
     vec_test = [trunc_if_possible(el) for el in test_scores]
     vec_parameters = list(parameter_dic.values())
-    vec_model = [options.k, options.pool, 
-                 options.batch_size, options.size, 
+    vec_model = [options.batch_size, options.size, 
                  options.input_depth,
                  options.fold_test-1, options.run]
 
     name_columns = train_values + val_values + test_values + parameters_values + model_values
     val_columns = vec_train + vec_validation + vec_test + vec_parameters + vec_model
-    import pdb; pdb.set_trace()
+
     table.iloc[options.run][name_columns] = val_columns
     table.iloc[options.run]["model"] = options.model 
     table.iloc[options.run]["validation_fold"] = validation_number 
