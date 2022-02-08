@@ -75,7 +75,7 @@ def train_model(model, dg_train, dg_val, class_weight, options):
     return model, history
 
 
-def evaluate_model_generator(dg, index, model, options, repeat=5):
+def evaluate_model_generator(dg, index, model, options, repeat=1):
     final_scores = None
     final_predictions = None
     for i in range(repeat):
@@ -95,6 +95,7 @@ def evaluate_model_generator(dg, index, model, options, repeat=5):
     final_predictions = final_predictions / repeat
 
     y_true = dg.return_labels()[:(len(dg)*dg.batch_size)].argmax(axis=1)
+    import pdb; pdb.set_trace()
     lbl_predictions = DataFrame({"y_true": y_true, "y_test": final_predictions[:,1]}, index=index)
 
     return list(final_scores), lbl_predictions
@@ -176,11 +177,11 @@ def main():
             print("end Training")
             print("Evaluating..")
             scores_train, _ = evaluate_model_generator(dg_train, None, model, 
-                                                     options, repeat=10)
+                                                     options, repeat=1)
             scores_val, _ = evaluate_model_generator(dg_val, None, model, 
-                                                     options, repeat=10)
+                                                     options, repeat=1)
             scores_test, predictions = evaluate_model_generator(dg_test, test_index, model, 
-                                                           options, repeat=10)
+                                                           options, repeat=1)
             print("Cleaning up")
             results_table = fill_table(scores_train, scores_val, scores_test, results_table, parameter_dic, j, options)
 
