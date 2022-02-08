@@ -439,6 +439,7 @@ class h5_Sequencer_HL(Sequence):
             new_y.append(np.tile(self.y_onehot[i], (end-start,1)))
 
         self.new_indices = np.concatenate(new_indices)
+        import pdb; pdb.set_trace()
         self.new_x = self.data[new_indices]
 
         self.new_y = np.vstack(new_y)
