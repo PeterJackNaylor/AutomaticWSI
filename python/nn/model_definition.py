@@ -438,11 +438,11 @@ def mlp_2_layer(n_classes, hidden_fcn=512,
         Compiled keras model.
     """
 
-    input_size = (input_depth)
+    input_size = (input_depth,)
     in_layer = Input(shape=input_size)
 
     if drop_out != 0:
-        x_i = Dropout(drop_out, noise_shape=(input_depth))(in_layer)
+        x_i = Dropout(drop_out)(in_layer)
     else:
         x_i = in_layer
     if gaussian_param != 0:

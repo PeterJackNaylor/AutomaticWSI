@@ -80,7 +80,7 @@ def get_options():
     args.weight_decay_stop = -1
 
     args.activation_middle = "tanh"
-    args.hidden_fcn_list = [64, 128]
+    args.hidden_fcn_list = [256, 512]
     args.hidden_btleneck_list = [8, 32, 64]
 
     args.pooling_layer = args.pool

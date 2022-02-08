@@ -407,3 +407,153 @@ class h5_Sequencer(Sequence):
             batch_y = np.array(batch_y)
             return (batch_x, batch_y)
 
+
+def fill_table(row, ar=None, index_pat=None, y=None):
+    start = row["start"]
+    end = row["end"]
+    biop = row["Biopsy"]
+    import pdb; pdb.set_trace()
+
+class h5_Sequencer_HL(Sequence):
+
+    def __init__(self, index_patient, table, data, batch_size=1, size=10000, shuffle=True, y_name="RCB_class"):
+        n_classes = len(np.unique(table[y_name]))
+        if shuffle:
+            np.random.shuffle(index_patient)
+        self.index_patient = index_patient
+        self.y_name = y_name
+        self.table = table
+        self.y_onehot = to_categorical(self.return_labels(), n_classes)
+
+        self.n_size = len(self.index_patient)
+        self.batch_size = batch_size
+        self.size = size
+        self.data = data
+        self.y_onehot_new = np.zeros(shape=(self.data.shape[0], self.y_onehot.shape[1]))
+        print("check patient index")
+        import pdb; pdb.set_trace()
+        self.table.apply(lambda row: fill_table(row, ar=self.y_onehot_new, index_pat=index_patient, y=self.y_onehot), axis=1)
+        print("Initializing generator", flush=True)
+        self.lock = threading.Lock()   #Set self.lock
+        
+    def return_labels(self):
+        return np.array(self.table.iloc[self.index_patient][self.y_name])
+
+    def __len__(self):
+        return self.n_size // self.batch_size
+
+    def __getitem__(self, idx):
+        """Samples a batch
+        
+        Each bacth is the aggregation of `batch_size` number of patients, each patients being `size` tiles.
+
+        Parameters
+        ----------
+        idx : int
+            index of the sample
+        
+        Returns
+        -------
+        np.array, np.array
+            1: return_1[i] is an array containing the `size` encoded tiles of patient `i`
+            2: return_2[i] is an array containing the `size` number of labels of patient `i`
+        """
+
+        with self.lock:                #Use self.lock
+            batch_x = self.index_patient[idx * self.batch_size:(idx + 1) * self.batch_size]
+            batch_y = self.y_onehot[idx * self.batch_size:(idx + 1) * self.batch_size]
+
+            def f(name, table, data, size):
+                index = pj_fetch(name, table, size)
+                npy_array = data[index]
+                return npy_array
+
+            list_f_x = [f(name, self.table, self.data, self.size) for name in batch_x]
+            batch_x = np.array(list_f_x).astype(float)
+            batch_y = np.array(batch_y)
+            return (batch_x, batch_y)
+
+class data_handler_hardlabel(data_handler):
+
+    def dg_train(self, fold):
+        """
+        Returns a h5_sequencer following the object template given
+        by Keras in order to feed a neural network with a custom
+        data generator. In particular, we specify the fold value
+        in order to know which fold to remove from the training set.
+        Parameters
+        ----------
+        fold : int
+            fold to remove from training set
+        Returns
+        -------
+        h5_Sequencer from the Keras package,
+            training data generator for a Keras neural network module.
+        """
+        train_index = self.obj[fold][0] 
+        return h5_Sequencer_HL(train_index, 
+                            self.table, 
+                            self.data, 
+                            self.batch_size, 
+                            self.size, 
+                            y_name=self.y_interest)
+
+    def dg_val(self, fold):
+        """
+        Returns a h5_sequencer following the object template given
+        by Keras in order to feed a neural network with a custom
+        data generator. In particular, we specify the fold value
+        in order to know which fold to generate as a validation set.
+        Parameters
+        ----------
+        fold : int
+            fold to return for the validation set
+        Returns
+        -------
+        h5_Sequencer from the Keras package,
+            validation data generator for a Keras neural network module.
+        """
+        val_index = self.obj[fold][1]
+        return h5_Sequencer_HL(val_index, 
+                            self.table, 
+                            self.data, 
+                            self.batch_size,
+                            self.size,  
+                            y_name=self.y_interest)
+
+    def dg_test(self):
+        """
+        Returns a h5_sequencer following the object template given
+        by Keras in order to feed a neural network with a custom
+        data generator. This module returns the data generator for
+        the test set.
+        Returns
+        -------
+        h5_Sequencer from the Keras package,
+            testing data generator for a Keras neural network module.
+        """
+        return h5_Sequencer_HL(self.test_index, 
+                            self.table, 
+                            self.data, 
+                            1, 
+                            self.size, 
+                            shuffle=False,
+                            y_name=self.y_interest)
+
+    def dg_test_index_table(self):
+        """
+        Returns a h5_sequencer following the object template given
+        by Keras in order to feed a neural network with a custom
+        data generator. This module returns the data generator for
+        the test set.
+        Returns
+        -------
+        A tuple of three elements:
+            - h5_Sequencer from the Keras package,
+                testing data generator for a Keras neural network module.
+            - list[str] representing the test index from the original table
+            - pd.DataFrame, the original table
+        """
+        return h5_Sequencer_HL(self.test_index, self.table, self.data, 
+                            1, self.size, shuffle=False,
+                            y_name=self.y_interest), self.test_index, self.table
