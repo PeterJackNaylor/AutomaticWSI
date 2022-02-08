@@ -430,16 +430,16 @@ class h5_Sequencer_HL(Sequence):
         self.size = size
         self.data = data
         print("check patient index")
-        new_x = []
+        new_indices = []
         new_y = []
         for i, pat in enumerate(list(index_patient)):
             start = self.table.loc[pat, "start"]
             end = self.table.loc[pat, "end"]
-            new_x.append(self.data[start:end])
+            new_indices.append(np.array(range(start,end)))
             new_y.append(np.tile(self.y_onehot[i], (end-start,1)))
+        self.new_indices = np.vstack(new_indices)
+        self.new_x = self.data[new_indices]
 
-
-        self.new_x = np.vstack(new_x)
         self.new_y = np.vstack(new_y)
         self.n_size = self.new_x.shape[0]
         if shuffle:
@@ -560,6 +560,7 @@ class data_handler_hardlabel(data_handler):
             - list[str] representing the test index from the original table
             - pd.DataFrame, the original table
         """
-        return h5_Sequencer_HL(self.test_index, self.table, self.data, 
+        dg = h5_Sequencer_HL(self.test_index, self.table, self.data, 
                             1, self.size, shuffle=False,
-                            y_name=self.y_interest), self.test_index, self.table
+                            y_name=self.y_interest)
+        return dg, dg.new_indices, self.table
