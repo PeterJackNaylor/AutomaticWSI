@@ -4,7 +4,7 @@
 		do
 			if [ $res -eq 0 ]
 				then
-					size=5000
+					size=1000
 				else
 					if [ $res -eq 1 ]
 						then
@@ -21,7 +21,7 @@
 			nextflow run nextflow/Hard_labelling.nf -resume -c ~/.nextflow/config -profile $3 \
 											--PROJECT_NAME $4 --PROJECT_VERSION $5 \
 											--resolution $res --y_interest ${y_interest} \
-											--label $6 \
+											--label $6 --size $size \
 											--input_tiles ./outputs/imagenet/tiling/${res}/mat_pca/ \
 											--mean ./outputs/imagenet/tiling/${res}/pca_mean/mean.npy
 		done
