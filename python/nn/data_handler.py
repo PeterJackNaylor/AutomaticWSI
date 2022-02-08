@@ -408,11 +408,11 @@ class h5_Sequencer(Sequence):
             return (batch_x, batch_y)
 
 
-def fill_table(row, ar=None, index_pat=None, y=None):
-    start = row["start"]
-    end = row["end"]
-    biop = row["Biopsy"]
-    import pdb; pdb.set_trace()
+def fill_table(row, ar=None, y=None):
+    start = int(row["start"])
+    end = int(row["end"])
+    ind = row["Name"]
+    ar[start:end] = y[ind]
 
 class h5_Sequencer_HL(Sequence):
 
@@ -431,8 +431,8 @@ class h5_Sequencer_HL(Sequence):
         self.data = data
         self.y_onehot_new = np.zeros(shape=(self.data.shape[0], self.y_onehot.shape[1]))
         print("check patient index")
+        self.table.apply(lambda row: fill_table(row, ar=self.y_onehot_new, y=self.y_onehot), axis=1)
         import pdb; pdb.set_trace()
-        self.table.apply(lambda row: fill_table(row, ar=self.y_onehot_new, index_pat=index_patient, y=self.y_onehot), axis=1)
         print("Initializing generator", flush=True)
         self.lock = threading.Lock()   #Set self.lock
         
