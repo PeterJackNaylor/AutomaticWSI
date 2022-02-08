@@ -79,7 +79,6 @@ def evaluate_model_generator(dg, index, model, options, repeat=5):
     final_scores = None
     final_predictions = None
     for i in range(repeat):
-        import pdb; pdb.set_trace()
         scores, predictions = evaluate_model_hardlabel(model, dg, 
                                      max_queue_size=options.max_queue_size, 
                                      workers=options.workers, 
