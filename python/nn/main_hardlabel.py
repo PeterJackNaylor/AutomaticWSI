@@ -5,7 +5,7 @@ from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 import sys
 from data_handler import data_handler, data_handler_hardlabel
 from model_definition import load_model_hardlabel
-from evaluate_nn import evaluate_model
+from evaluate_nn import evaluate_model_hardlabel
 import ipdb
 
 import tensorflow as tf
@@ -80,7 +80,7 @@ def evaluate_model_generator(dg, index, model, options, repeat=5):
     final_predictions = None
     for i in range(repeat):
         import pdb; pdb.set_trace()
-        scores, predictions = evaluate_model(model, dg, 
+        scores, predictions = evaluate_model_hardlabel(model, dg, 
                                      max_queue_size=options.max_queue_size, 
                                      workers=options.workers, 
                                      use_multiprocessing=options.use_multiprocessing, 
