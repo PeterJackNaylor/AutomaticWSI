@@ -19,9 +19,9 @@
 			echo 
 			echo "####################################################################"
 			nextflow run nextflow/Hard_labelling.nf -resume -c ~/.nextflow/config -profile $3 \
-											--PROJECT_NAME $(PROJECT_NAME) --PROJECT_VERSION $4 \
+											--PROJECT_NAME $4 --PROJECT_VERSION $5 \
 											--resolution $res --y_interest ${y_interest} \
-											--label $5 \
+											--label $6 \
 											--input_tiles ./outputs/tiling/${res}/mat_pca/ \
 											--mean ./outputs/tiling/${res}/pca_mean/mean.npy
 		done
