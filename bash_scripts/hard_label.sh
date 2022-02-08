@@ -22,7 +22,7 @@
 											--PROJECT_NAME $4 --PROJECT_VERSION $5 \
 											--resolution $res --y_interest ${y_interest} \
 											--label $6 \
-											--input_tiles ./outputs/tiling/${res}/mat_pca/ \
-											--mean ./outputs/tiling/${res}/pca_mean/mean.npy
+											--input_tiles ./outputs/imagenet/tiling/${res}/mat_pca/ \
+											--mean ./outputs/imagenet/tiling/${res}/pca_mean/mean.npy
 		done
 	done

@@ -55,7 +55,7 @@ model_2S: $(LABEL_FILE)
 	done
 
 hard_label:
-	bash sbash_scripts/hard_label.sh "$(Y_TARGETS)" "$(RESOLUTIONS)" $(PROFILE) $(PROJECT_NAME) $(VERSION) $(LABEL_FILE)
+	bash bash_scripts/hard_label.sh "$(Y_TARGETS)" "$(RESOLUTIONS)" $(PROFILE) $(PROJECT_NAME) $(VERSION) $(LABEL_FILE)
 
 model_1S: $(LABEL_FILE)
 	for y_interest in $(Y_TARGETS)
