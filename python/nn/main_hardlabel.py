@@ -3,7 +3,7 @@ from pandas import DataFrame
 from options_py import get_options
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 import sys
-from data_handler import data_handler
+from data_handler import data_handler, data_handler_hardlabel
 from model_definition import load_model_hardlabel
 from evaluate_nn import evaluate_model
 import ipdb
@@ -144,7 +144,7 @@ def main():
 
 
     ### data business
-    data = data_handler(path, fold_test, 
+    data = data_handler_hardlabel(path, fold_test, 
                         table_name, options.inner_folds, 
                         batch_size, mean, options)
     columns = ['loss', 'acc', 'recall', 'precision', 'f1', 'auc_roc',
