@@ -439,8 +439,8 @@ class h5_Sequencer_HL(Sequence):
             new_y.append(np.tile(self.y_onehot[i], (end-start,1)))
         import pdb; pdb.set_trace()
 
-        self.new_x = np.stack(new_x)
-        self.new_y = np.stack(new_y)
+        self.new_x = np.vstack(new_x)
+        self.new_y = np.vstack(new_y)
         self.n_size = self.new_x.shape
         if shuffle:
             idx = np.array(range(self.n_size))
