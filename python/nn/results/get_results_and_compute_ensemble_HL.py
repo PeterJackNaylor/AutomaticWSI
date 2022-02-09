@@ -14,6 +14,14 @@ def get_options():
     parser.add_argument('--path', required=True,
                         metavar="str", type=str,
                         help='folder where the result files can be found')
+
+    parser.add_argument('--res', required=True,
+                        metavar="str", type=str)
+    parser.add_argument('--model', required=True,
+                        metavar="str", type=str)
+    parser.add_argument('--y', required=True,
+                        metavar="str", type=str)
+    
     args = parser.parse_args()
     return args
 
@@ -67,11 +75,10 @@ def main():
         truth_for_auc.append(y_true)
 
     output = pd.DataFrame(score_cv).T
-    folder = os.path.realpath(options.path)
-    predict_type = folder.split('/')[-2]
+    predict_type = options.y
     import pdb; pdb.set_trace()
-    res = folder.split('Model_NN_R')[1].split('/')[0]
-    model = folder.split('/')[-3]
+    res = options.res
+    model = options.model
     output['prediction'] = predict_type
     output['resolution'] = res
     output['model'] = model
