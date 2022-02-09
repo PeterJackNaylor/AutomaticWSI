@@ -20,7 +20,7 @@ params.mean = "${input_folder}/tiling/${r}/mean/mean.npy"
 mean_tile = file(params.mean)
 
 
-
+params.inner_fold = 5
 inner_fold =  params.inner_fold
 gaussian_noise = [0]//, 1]
 batch_size = 16
@@ -30,6 +30,7 @@ REPEATS = 10
 params.size = 5000
 size = params.size
 
+params.number_of_folds = 5
 number_of_folds = params.number_of_folds 
 
 model_types = ["model_1S_c", "weldon_plus_c", "conan_c"]
