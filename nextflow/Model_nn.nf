@@ -96,24 +96,21 @@ predictions_regrouped = results_nn  .groupTuple()
 
      
 
+
 process Grouping_results {
     publishDir "${output_folder}",  overwrite: true
-    publishDir "${output_best}",  overwrite: true
 
 
     input:
     set model, file(_) from regrouped_predictions
 
     output:
-    file("${name}_all.csv")
-    file("${name}_best.csv") into best
+    file("*.csv")
 
     script:
-    python_file = file("python/nn/results/get_results.py")
-    name = "${model}_for_${params.y_interest}_at_res_${r}__"
-    output_best = file("${output_folder}/res_aggr/${params.y_interest}/")
-    output_folder = file("${output_folder}/${model}/${params.y_interest}/results/")
+    python_file = file("python/nn/results/get_results_and_compute_ensemble.py")
+    output_folder = file("${output_folder}/${model}/${params.y_interest}")
     """
-    python $python_file --path . --name $name --variable_to_report auc
+    python $python_file --path . --model $model --y $params.y_interest --res $r
     """
 }

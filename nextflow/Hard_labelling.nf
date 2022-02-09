@@ -108,7 +108,6 @@ process Grouping_results {
 
     script:
     python_file = file("python/nn/results/get_results_and_compute_ensemble_HL.py")
-    name = "${model}_for_${params.y_interest}_at_res_${r}__"
     output_folder = file("${output_folder}/${model}/${params.y_interest}")
     """
     python $python_file --path . --model $model --y $params.y_interest --res $r
