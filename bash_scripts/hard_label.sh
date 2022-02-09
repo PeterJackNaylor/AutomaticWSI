@@ -4,7 +4,7 @@
 		do
 			if [ $res -eq 0 ]
 				then
-					size=1000
+					size=5000
 				else
 					if [ $res -eq 1 ]
 						then

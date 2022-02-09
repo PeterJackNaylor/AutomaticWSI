@@ -35,7 +35,6 @@ def sample_hp(d):
 
 
 def ncv_single(std, repeat):
-    list_std = list(range(1, 21))
 
     k = 5
     n_train = 224
@@ -43,14 +42,13 @@ def ncv_single(std, repeat):
     n_loads = 5000
     p = 256
 
-    repeats_hp = 20
 
 
     hp = {'lr_range': (-4, -1),
           'wd_range': (-5, -3),
           'do_range': (0.3, 0.7)}
     # name = f"bncv_sco.csv"
-    out_names = ["ncv", "bncv", "bncv_top_3", "bncv_top_5"]
+    out_names = ["ncv", "bncv", "bncv_top_3", "bncv_top_5", "bfcv", "bfcv_top_3", "bfcv_top_5"]
 
     final_results = pd.DataFrame(columns=["name", "score", "std"])
 
@@ -58,7 +56,7 @@ def ncv_single(std, repeat):
     
     data_loads = load_sample(n_loads, p, std)
     data_cv = load_sample(n_train+n_val, p, std)
-    outputs = cv(data_cv, hp, k, repeats_hp, data_loads)
+    outputs = cv(data_cv, hp, k, repeat, data_loads)
     for name, score in zip(out_names, outputs):
         final_results.loc[line_counter, "name"] = name
         final_results.loc[line_counter, "score"] = score
@@ -153,7 +151,11 @@ def cv(data, hp, k, repeats, data_test):
     bncv3 = aggre(validation_scores, test_predictions[mean_val_idx], 3, data_test[1])
     bncv5 = aggre(validation_scores, test_predictions[mean_val_idx], 5, data_test[1])
 
-    return score, bncv1, bncv3, bncv5
+    bfcv1 = best_fold_aggre(results, test_predictions, 1, k, data_test[1])
+    bfcv3 = best_fold_aggre(results, test_predictions, 3, k, data_test[1])
+    bfcv5 = best_fold_aggre(results, test_predictions, 5, k, data_test[1])
+
+    return score, bncv1, bncv3, bncv5, bfcv1, bfcv3, bfcv5
 
 
 def aggre(series_scores, dic_pred_test, order, y_test):
@@ -163,6 +165,28 @@ def aggre(series_scores, dic_pred_test, order, y_test):
     results /= order
     y_ens = results.argmax(axis=1)
     return accuracy_score(y_test.argmax(axis=1), y_ens)
+
+def best_fold_aggre(res, test_pred, n, k, y_true):
+    fold_val = []
+    idx_val = []
+    res = res.astype(float)
+    for i in range(k):
+        best_idx_val = res[i].argmax()
+        idx_val.append(best_idx_val)
+        fold_val.append(res.loc[best_idx_val, i])
+    
+    idx_sort = np.argsort(fold_val)[::-1]
+    pred = np.zeros_like(test_pred[0][0])
+    for i in range(n):
+        f_num = idx_sort[i]
+        pred += test_pred[idx_val[f_num]][f_num]
+    pred /= n
+    y_ens = pred.argmax(axis=1)
+    return accuracy_score(y_true.argmax(axis=1), y_ens)
+
+    
+
+
 
 
 def repeat(num):

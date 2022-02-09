@@ -58,34 +58,7 @@ hard_label:
 	bash bash_scripts/hard_label.sh "$(Y_TARGETS)" "$(RESOLUTIONS)" $(PROFILE) $(PROJECT_NAME) $(VERSION) $(LABEL_FILE)
 
 model_1S: $(LABEL_FILE)
-	for y_interest in $(Y_TARGETS)
-	do
-		for res in $(RESOLUTIONS)
-		do
-			if [ $res -eq 0 ]
-				then
-					size=5000
-				else
-					if [ $res -eq 1 ]
-						then
-							size=3000
-						else
-							size=1000
-					fi
-			fi
-			echo "####################################################################"
-			echo 
-			echo "########### Doing ${y_interest} at ${res} input size $size ###############"
-			echo 
-			echo "####################################################################"
-			nextflow run nextflow/Model_nn.nf -resume -c ~/.nextflow/config -profile $(PROFILE) \
-											--PROJECT_NAME $(PROJECT_NAME) --PROJECT_VERSION $(VERSION) \
-											--resolution $res --y_interest ${y_interest} \
-											--label $(LABEL_FILE) \
-											--input_tiles ./outputs/$(PROJECT_NAME)_$(PROJECT_VERSION)/tiling/${res}/mat_pca/ \
-											--mean ./outputs/$(PROJECT_NAME)_$(PROJECT_VERSION)/tiling/${res}/pca_mean/mean.npy
-		done
-	done
+	bash bash_scripts/model_1s.sh "$(Y_TARGETS)" "$(RESOLUTIONS)" $(PROFILE) $(PROJECT_NAME) $(VERSION) $(LABEL_FILE)
 
 repeated_experiment:
 	nextflow run nextflow/Repeated_experiment.nf -resume
