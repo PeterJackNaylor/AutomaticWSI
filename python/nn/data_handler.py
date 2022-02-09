@@ -423,7 +423,7 @@ class h5_Sequencer_HL(Sequence):
         self.index_patient = index_patient
         self.y_name = y_name
         self.table = table
-        self.y_onehot = to_categorical(np.array(self.table.iloc[self.index_patient][self.y_name]), n_classes)
+        self.y_onehot = to_categorical(self.return_biop_labels()), n_classes)
 
         self.n_size = len(self.index_patient)
         self.batch_size = batch_size
@@ -431,15 +431,17 @@ class h5_Sequencer_HL(Sequence):
         self.data = data
         print("check patient index")
         new_indices = []
+        corresp_samples = []
         new_y = []
         for i, pat in enumerate(list(index_patient)):
             start = self.table.loc[pat, "start"]
             end = self.table.loc[pat, "end"]
             new_indices.append(np.array(range(start,end)))
+            corresp_samples.append(np.repeat(pat, end-start))
             new_y.append(np.tile(self.y_onehot[i], (end-start,1)))
 
         self.new_indices = np.concatenate(new_indices)
-
+        self.corresp_samples = np.concatenate(corresp_samples)
         self.new_x = self.data[self.new_indices]
 
         self.new_y = np.vstack(new_y)
@@ -449,13 +451,14 @@ class h5_Sequencer_HL(Sequence):
             np.random.shuffle(idx)
             self.new_x = self.new_x[idx]
             self.new_y = self.new_y[idx]
-
+            self.corresp_samples = self.corresp_samples[idx]
         print("Initializing generator", flush=True)
         self.lock = threading.Lock()   #Set self.lock
         
     def return_labels(self):
         return self.new_y
-
+    def return_biop_labels(self):
+        return np.array(self.table.iloc[self.index_patient][self.y_name]
     def __len__(self):
         return self.n_size // self.batch_size
 
