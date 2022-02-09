@@ -571,4 +571,4 @@ class data_handler_hardlabel(data_handler):
         dg = h5_Sequencer_HL(self.test_index, self.table, self.data, 
                             dg.n_size, self.size, shuffle=False,
                             y_name=self.y_interest)
-        return dg, dg.new_indices, self.table
+        return dg, dg.index_patient, self.table
