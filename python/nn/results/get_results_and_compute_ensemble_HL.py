@@ -35,7 +35,7 @@ def main():
                                     'drop_out',
                                     'learning_rate',
                                     'weight_decay']).mean()
-        hbt, hfcn, do, lr, wd = cv_mean["val_auc_roc"].idxmax()
+        hfcn, do, lr, wd = cv_mean["val_auc_roc"].idxmax()
         full_exp = min_tab.loc[(min_tab['hidden_fcn'] == hfcn)&(min_tab['drop_out'] == do)&(min_tab['learning_rate'] == lr)&(min_tab['weight_decay'] == wd)]
         recap.append(full_exp)
     recap = pd.concat(recap, axis=0)
