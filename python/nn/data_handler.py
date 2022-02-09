@@ -458,7 +458,7 @@ class h5_Sequencer_HL(Sequence):
     def return_labels(self):
         return self.new_y
     def return_biop_labels(self):
-        return np.array(self.table.iloc[self.index_patient][self.y_name])
+        return self.table.iloc[self.index_patient][self.y_name]
     def __len__(self):
         return self.n_size // self.batch_size
 
