@@ -18,11 +18,14 @@ do
         echo "########### Doing ${y_interest} at ${res} input size $size ###############"
         echo 
         echo "####################################################################"
-        nextflow run nextflow/Model_nn.nf -resume -c ~/.nextflow/config -profile $(PROFILE) \
+        nextflow run nextflow/Model_nn.nf -resume -c ~/.nextflow/config -profile $3 \
                                         --PROJECT_NAME $4 --PROJECT_VERSION $5 \
                                         --resolution $res --y_interest ${y_interest} \
-                                        --label $6 \
-                                        --input_tiles ./outputs/$4_$5/tiling/${res}/mat_pca/ \
-                                        --mean ./outputs/$4_$5/tiling/${res}/pca_mean/mean.npy
+                                        --label $6 --size $size \
+                                        --input_tiles ./outputs/ciga/tiling/${res}/mat_pca/ \
+										--mean ./outputs/ciga/tiling/${res}/mean.npy
+                                        # --mean ./outputs/$4_$5/tiling/${res}/pca_mean/mean.npy
+                                        #./outputs/$4_$5/tiling/${res}/mat_pca/ \
+                                        
     done
 done
