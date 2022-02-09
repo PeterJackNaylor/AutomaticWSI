@@ -31,7 +31,7 @@ def evaluate_model_hardlabel(model, dg,
                         workers=1, 
                         use_multiprocessing=False, 
                         verbose=0):
-    import pdb; pdb.set_trace()
+
 
     # y_true = dg.return_labels()[:(len(dg)*dg.batch_size)].argmax(axis=1)
     y_pred = model.predict_generator(dg, max_queue_size=max_queue_size,

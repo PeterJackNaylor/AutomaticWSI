@@ -93,10 +93,10 @@ def evaluate_model_generator(dg, index, model, options, repeat=1):
 
     final_scores = final_scores / repeat
     final_predictions = final_predictions / repeat
-
+    import pdb; pdb.set_trace()
     y_true = dg.return_labels()[:(len(dg)*dg.batch_size)].argmax(axis=1)
 
-    lbl_predictions = DataFrame({"y_true": y_true, "y_test": final_predictions[:,1]}, index=index)
+    lbl_predictions = DataFrame({"y_true": y_true, "y_test": final_predictions}, index=index)
 
     return list(final_scores), lbl_predictions
 
