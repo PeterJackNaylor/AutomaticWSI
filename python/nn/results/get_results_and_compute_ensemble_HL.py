@@ -69,6 +69,7 @@ def main():
     output = pd.DataFrame(score_cv).T
     folder = os.path.realpath(options.path)
     predict_type = folder.split('/')[-2]
+    import pdb; pdb.set_trace()
     res = folder.split('Model_NN_R')[1].split('/')[0]
     model = folder.split('/')[-3]
     output['prediction'] = predict_type
