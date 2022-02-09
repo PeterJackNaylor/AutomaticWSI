@@ -42,6 +42,7 @@ def evaluate_model_hardlabel(model, dg,
     y_bio = dg.return_biop_labels()
     df = pd.DataFrame({'corresp':y_corres, 'pred':y_pred[:,1]}).groupby('corresp').mean()
     df = df.join(y_bio)
+    df = df.loc[y_bio.index]
     df.columns = ['pred', 'true']
     #regroup pred by y_corresp
     y_pred = df['pred']
