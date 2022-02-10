@@ -14,6 +14,12 @@ def get_options():
     parser.add_argument('--path', required=True,
                         metavar="str", type=str,
                         help='folder where the result files can be found')
+    parser.add_argument('--res', required=True,
+                        metavar="str", type=str)
+    parser.add_argument('--model', required=True,
+                        metavar="str", type=str)
+    parser.add_argument('--y', required=True,
+                        metavar="str", type=str)
     args = parser.parse_args()
     return args
 
@@ -69,17 +75,17 @@ def main():
 
     output = pd.DataFrame(score_cv).T
     folder = os.path.realpath(options.path)
-    predict_type = folder.split('/')[-2]
-    res = folder.split('Model_NN_R')[1].split('/')[0]
-    model = folder.split('/')[-3]
+    predict_type = options.y
+    res = options.res
+    model = options.model
     output['prediction'] = predict_type
     output['resolution'] = res
     output['model'] = model
-    p = "/cbio/donnees/pnaylor/finishing_tmi/results"
+    p = "./"
     output.to_csv(os.path.join(p, '{}_{}_{}.csv'.format(predict_type, model, res)), index=False)
-    p_2 =  "/cbio/donnees/pnaylor/finishing_tmi/results_for_auc"
+    p_2 =  "./"
     pd.DataFrame({'y_true': np.concatenate(truth_for_auc, axis=0),
-                  'y_pred': np.concatenate(prediction_for_auc, axis=0)}).to_csv(os.path.join(p_2, '{}_{}_{}.csv'.format(predict_type, model, res)), index=False)
+                  'y_pred': np.concatenate(prediction_for_auc, axis=0)}).to_csv(os.path.join(p_2, '{}_{}_{}_pred.csv'.format(predict_type, model, res)), index=False)
 
 if __name__ == '__main__':
     main()

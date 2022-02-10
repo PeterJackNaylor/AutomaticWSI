@@ -14,14 +14,12 @@ def get_options():
     parser.add_argument('--path', required=True,
                         metavar="str", type=str,
                         help='folder where the result files can be found')
-
     parser.add_argument('--res', required=True,
                         metavar="str", type=str)
     parser.add_argument('--model', required=True,
                         metavar="str", type=str)
     parser.add_argument('--y', required=True,
                         metavar="str", type=str)
-    
     args = parser.parse_args()
     return args
 

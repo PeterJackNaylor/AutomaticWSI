@@ -23,9 +23,9 @@ name_dic = {
     'bncv': 'NECV-1',
     'bncv_top_3': 'NECV-3',
     'bncv_top_5': 'NECV',
-    'bfcv': 'BEFCV',
+    'bfcv': 'BEFCV-1',
     'bfcv_top_3': 'BEFCV-3',
-    'bfcv_top_5': 'BEFCV-5',
+    'bfcv_top_5': 'BEFCV',
 }
 
 
