@@ -74,7 +74,6 @@ def main():
 
     output = pd.DataFrame(score_cv).T
     predict_type = options.y
-    import pdb; pdb.set_trace()
     res = options.res
     model = options.model
     output['prediction'] = predict_type
