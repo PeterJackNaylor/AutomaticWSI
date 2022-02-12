@@ -33,7 +33,7 @@ def naive_bayes():
     list_std = list(range(1, 22))
     acc_list = []
     for std in list_std:
-        x, y = load_sample(10000, 256, std)
+        x, y = load_sample(100000, 256, std)
         answers = (x.sum(axis=1) > 0).astype(int)
         acc = accuracy_score(y.argmax(axis=1), 1 - answers)
         acc_list.append(acc * 100)
@@ -50,6 +50,8 @@ def continuous_line_plots(df):
     children = []
     n = df.loc[(df["name"] == "ncv") & (df["std"] == 1)].copy().shape[0]
     k = 1.96 / (n ** 0.5)
+    diff_to_naive_bayes = 1
+    score_bayes = naive_bayes()
     for name in variables:
         score_std_name = []
         ave_var = []
@@ -63,14 +65,14 @@ def continuous_line_plots(df):
         children += [go.Scatter(
                             name=name_dic[name],
                             x=x_axis,
-                            y=ave_var,
+                            y=abs(ave_var - diff_to_naive_bayes * score_bayes),
                             mode='lines',
-                            line=dict(width=0.5, color=colors[name][0]),
+                            line=dict(width=1.5, color=colors[name][0]),
                         )]
         children += [go.Scatter(
                             name=f'{name} Upper Bound',
                             x=x_axis,
-                            y=ave_var+k*std_var,
+                            y=abs(ave_var+k*std_var - diff_to_naive_bayes * score_bayes),
                             mode='lines',
                             marker=dict(color="#444"),
                             line=dict(width=0.2, color=colors[name][1]),
@@ -79,7 +81,7 @@ def continuous_line_plots(df):
         children += [go.Scatter(
                         name=f'{name} Lower Bound',
                         x=x_axis,
-                        y=ave_var-k*std_var,
+                        y=abs(ave_var-k*std_var - diff_to_naive_bayes * score_bayes),
                         marker=dict(color="#444"),
                         line=dict(width=0.2, color=colors[name][1]),
                         mode='lines',
@@ -88,13 +90,14 @@ def continuous_line_plots(df):
                         showlegend=False
                     )]
     score_bayes = naive_bayes()
-    children += [go.Scatter(
-                    name="Naive bayes",
-                    x=x_axis,
-                    y=score_bayes,
-                    mode='lines',
-                    line=dict(width=0.5, color=colors["bayes"][0]),
-                )]
+    if diff_to_naive_bayes == 0:
+        children += [go.Scatter(
+                        name="Naive bayes",
+                        x=x_axis,
+                        y=score_bayes,
+                        mode='lines',
+                        line=dict(width=0.5, color=colors["bayes"][0]),
+                    )]
     fig = go.Figure(children)
     fig.update_layout(
         yaxis_title='Accuracy (%) (with 95% confidence intervals)',
