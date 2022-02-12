@@ -5,8 +5,8 @@ LABEL_FILE = ./outputs/label.csv # Label name
 PROFILE = mines #nextflow profile, us it was the mine cluster profile
 DATA_PATH = ../Data/TNBC_biopsy/ # /path/to/tiff
 TISSUE_SEGMENTATION = ../Data/TNBC_biopsy/tissue_segmentation # /path/to/wsi/tissue/masks
-RESOLUTIONS = 0 1 2 # Resolution to investigate
-Y_TARGETS = Prognostic Residual # Name of y targets that can be found in LABEL_FILE
+RESOLUTIONS = 2 # Resolution to investigate
+Y_TARGETS = Residual # Name of y targets that can be found in LABEL_FILE
 PROJECT_VERSION = $(PROJECT_NAME)_$(VERSION)
 
 $(LABEL_FILE):
